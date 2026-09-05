@@ -5,8 +5,9 @@ plugins {
     kotlin("jvm") version "2.4.10"
 
     id("com.gradleup.shadow") version "9.0.0"
-    id("xyz.jpenilla.run-paper") version "2.3.1"
+    id("xyz.jpenilla.run-paper") version "3.1.0"
     id("de.eldoria.plugin-yml.paper") version "0.9.0"
+    id("io.github.ben-manes.versions") version "0.61.0"
 }
 
 group = "com.glomdom"
@@ -14,6 +15,7 @@ version = "1.0-SNAPSHOT"
 
 val rebarVersion = providers.gradleProperty("rebar.version").get()
 val pylonVersion = providers.gradleProperty("pylon.version").get()
+val minecraftVersion = providers.gradleProperty("minecraft.version").get()
 
 repositories {
     mavenCentral()
@@ -23,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
+    compileOnly("io.papermc.paper:paper-api:$minecraftVersion.build.+")
     compileOnly("io.github.pylonmc:rebar:$rebarVersion")
     compileOnly("io.github.pylonmc:pylon:$pylonVersion")
 }
