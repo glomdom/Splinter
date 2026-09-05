@@ -66,7 +66,7 @@ messages:
     incompatible: "<red>Those two blocks can't be linked</red>"
     same_block: "<red>Can't link a block to itself</red>"
     different_world: "<red>Both blocks must be in the same world</red>"
-    source_busy: "<red>%source% is already linked</red>, unlink it first"
+    source_busy: "<red>%source% is already linked</red>"
     capacity_full: "<red>%target% is full</red> (<aqua>%limit%</aqua> readers max)"
     too_far: "<red>Too far</red> — <aqua>%distance%</aqua> blocks, range is <aqua>%range%</aqua>"
 
