@@ -61,6 +61,10 @@ sealed interface LinkResult {
         override val messageKey = "splinter.messages.linker.incompatible"
     }
 
+    data object InvalidBlock : LinkResult {
+        override val messageKey = "splinter.messages.linker.invalid"
+    }
+
     data object SameBlock : LinkResult {
         override val messageKey = "splinter.messages.linker.same_block"
     }

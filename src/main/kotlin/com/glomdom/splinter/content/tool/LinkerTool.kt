@@ -30,7 +30,7 @@ class LinkerTool(stack: ItemStack) : RebarItem(stack), BlockInteractRebarItemHan
         if (player.isSneaking) return clearPending(player)
 
         val clicked = event.clickedBlock?.rebarBlock as? Linkable
-            ?: return player.sendActionBar(LinkResult.IncompatiblePair.toComponent())
+            ?: return player.sendActionBar(LinkResult.InvalidBlock.toComponent())
 
         val pending = pendingLocation() ?: return beginLink(player, clicked)
         if (!pending.isChunkLoaded) return clearPending(player)
