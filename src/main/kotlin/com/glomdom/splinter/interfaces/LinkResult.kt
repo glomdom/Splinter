@@ -32,6 +32,7 @@ sealed interface LinkResult {
             )
     }
 
+    // fixme: probably remove this
     data class AlreadyLinked(val source: LinkSource, val target: LinkTarget) : LinkResult {
         override val messageKey = "splinter.messages.linker.already_linked"
         override val arguments

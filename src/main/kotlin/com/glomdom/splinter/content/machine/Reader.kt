@@ -60,7 +60,7 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiReb
     private var lastValue: Int? = null
     private var configItem: ConfigItem? = null
 
-    private var config: Config = Config.COUNT
+    private var config: Config? = null
     private var lastRenderedConfig: Config? = null
 
     override val linkRange = 64
@@ -69,7 +69,7 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiReb
     private var linkedTo: BlockPosition? = null
 
     val value
-        get() = config.read(block.getRelative(facing))
+        get() = config?.read(block.getRelative(facing))
 
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
         facing = if (ctx.player?.isSneaking == true) {
@@ -155,8 +155,7 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiReb
     }
 
     override fun write(pdc: PersistentDataContainer) {
-        pdc.set(configKey, configType, config)
-
+        config?.let { pdc.set(configKey, configType, it) }
         linkedTo?.let { pdc.set(linkKey, RebarSerializers.BLOCK_POSITION, it) }
     }
 
@@ -200,11 +199,15 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiReb
             )
         )
 
+        if (config?.appliesTo(subject) != true) {
+            setConfig(defaultConfigFor(subject))
+        }
+
         refreshValue()
     }
 
     internal fun refreshValue() {
-        val count = config.read(block.getRelative(facing))
+        val count = config?.read(block.getRelative(facing))
         if (count == lastValue && config == lastRenderedConfig) return
 
         lastValue = count
@@ -220,6 +223,7 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiReb
 
     private fun refreshStatus() {
         val status = when {
+            config == null -> "splinter.reader.status.unconfigured"
             linkedTo == null -> "splinter.reader.status.unlinked"
 
             else -> "splinter.reader.status.transmitting"
@@ -237,7 +241,10 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiReb
         getHeldEntity(TextDisplay::class.java, "config")?.text(
             Component.translatable(
                 "splinter.reader.config.label",
-                RebarArgument.of("config", config.label)
+                RebarArgument.of(
+                    "config", config?.label
+                        ?: Component.translatable("splinter.reader.config.none")
+                )
             )
         )
 
@@ -245,12 +252,13 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiReb
     }
 
     private fun cycleConfig() {
-        val options: List<Config> = Config.availableFor(block.getRelative(facing))
+        val options: List<Config?> = listOf(null) + Config.availableFor(block.getRelative(facing))
+        if (options.size <= 1) return setConfig(null)
 
         setConfig(options[(options.indexOf(config) + 1) % options.size])
     }
 
-    private fun setConfig(new: Config) {
+    private fun setConfig(new: Config?) {
         if (new == config) return
 
         config = new
@@ -259,6 +267,9 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiReb
         refreshValue()
         configItem?.refresh()
     }
+
+    private fun defaultConfigFor(subject: Block): Config? =
+        Config.availableFor(subject).firstOrNull()
 
     private inner class ConfigItem : AbstractItem() {
         fun refresh() = notifyWindows()
@@ -269,7 +280,10 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiReb
                 .lore(
                     Component.translatable(
                         "splinter.reader.gui.config.current",
-                        RebarArgument.of("config", config.label)
+                        RebarArgument.of(
+                            "config", config?.label
+                                ?: Component.translatable("splinter.reader.config.none")
+                        )
                     ),
                     Component.translatable("splinter.reader.gui.config.hint"),
                 )
