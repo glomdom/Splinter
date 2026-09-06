@@ -1,6 +1,8 @@
 package com.glomdom.splinter.content.machine
 
+import com.glomdom.splinter.content.machine.data.DataPort
 import com.glomdom.splinter.extensions.READER
+import com.glomdom.splinter.content.machine.data.DataEndpoint
 import com.glomdom.splinter.interfaces.LinkSource
 import com.glomdom.splinter.interfaces.LinkTarget
 import com.glomdom.splinter.splinterKey
@@ -24,6 +26,7 @@ import net.kyori.adventure.text.Component
 import org.bukkit.Color
 import org.bukkit.Material
 import org.bukkit.block.Block
+import org.bukkit.block.BlockFace
 import org.bukkit.entity.Display
 import org.bukkit.entity.Player
 import org.bukkit.entity.TextDisplay
@@ -35,15 +38,22 @@ import xyz.xenondevs.invui.Click
 import xyz.xenondevs.invui.gui.Gui
 import xyz.xenondevs.invui.item.AbstractItem
 
-class Receiver : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkTarget {
-    override val linkCapacity = 4
-    override val sourceCount
-        get() = sources.size
-
+class Receiver : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkTarget, DataEndpoint {
     private val sources = mutableSetOf<BlockPosition>()
 
     private var configItem: ConfigItem? = null
     private var combine: Combine = Combine.SUM
+
+    override val linkCapacity = 4
+    override val sourceCount
+        get() = sources.size
+
+    override val dataPorts = mapOf(
+        BlockFace.EAST to DataPort.OUTPUT,
+        BlockFace.WEST to DataPort.OUTPUT,
+        BlockFace.NORTH to DataPort.OUTPUT,
+        BlockFace.SOUTH to DataPort.OUTPUT,
+    )
 
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
         addEntity(

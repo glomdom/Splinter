@@ -73,6 +73,9 @@ abstract class SplinterRegistry {
     protected fun blockItem(material: Material, page: SimpleStaticGuidePage) =
         item<RebarItem>(material, page, kind = Kind.BLOCK_ITEM)
 
+    protected fun blockItem(material: Material, look: Material, page: SimpleStaticGuidePage) =
+        item<RebarItem>(material, page, kind = Kind.BLOCK_ITEM, look)
+
     protected fun <T : RebarBlock> block(material: Material, type: Class<T>) =
         entry(
             kind = Kind.BLOCK,
@@ -84,7 +87,7 @@ abstract class SplinterRegistry {
     protected inline fun <reified T : RebarBlock> block(material: Material) =
         block(material, T::class.java)
 
-    protected inline fun <reified T : RebarItem> item(material: Material, page: SimpleStaticGuidePage, kind: Kind) =
+    protected inline fun <reified T : RebarItem> item(material: Material, page: SimpleStaticGuidePage, kind: Kind, look: Material? = null) =
         entry(
             kind,
             register = { key, stack ->
@@ -94,7 +97,11 @@ abstract class SplinterRegistry {
                 page.addItem(stack)
             }
         ) { key ->
-            ItemStackBuilder.rebar(material, key).build()
+            if (look != null) {
+                ItemStackBuilder.rebar(material, key).set(DataComponentTypes.ITEM_MODEL, look.key).build()
+            } else {
+                ItemStackBuilder.rebar(material, key).build()
+            }
         }
 
     private fun claim(propertyName: String, kind: Kind): NamespacedKey {

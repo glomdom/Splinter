@@ -17,6 +17,11 @@ item:
     lore: |-
       <arrow> Receives data from one or more readers.
 
+  data_wire:
+    name: "Data Wire"
+    lore: |-
+      <arrow> Kompooter, send ones and zeroes
+
 reader:
   status:
     label: "Status: %status%"
