@@ -4,29 +4,34 @@ item:
   reader:
     name: "Reader"
     lore: |-
-      <arrow> Reads a configurable state from a block.
-      <arrow> Must be linked to a receiver to send data.
+      <arrow> Reads a configurable state from a block
+      <arrow> Must be linked to a receiver to send data
 
   linker_tool:
     name: "Linker"
     lore: |-
-      <arrow> Links a reader to a receiver.
+      <arrow> Links a reader to a receiver
 
   receiver:
     name: "Receiver"
     lore: |-
-      <arrow> The brains of a logistic network.
-      <arrow> Receives data from one or more readers.
+      <arrow> The brains of a logistic network
+      <arrow> Receives data from one or more readers
 
   probe:
     name: "Probe"
     lore: |-
-      <arrow> Outputs the amount of the provided item from a receiver.
+      <arrow> Outputs the amount of the provided item from a receiver
 
   data_wire:
     name: "Data Wire"
     lore: |-
       <arrow> Kompooter, send ones and zeroes
+
+  redstone_out:
+    name: "Redstone Out"
+    lore: |-
+      <arrow> Outputs a redstone signal based on the input data
 
 reader:
   status:
