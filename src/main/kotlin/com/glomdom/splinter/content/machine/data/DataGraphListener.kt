@@ -7,6 +7,7 @@ import com.glomdom.splinter.event.DataDisconnectEvent
 import io.github.pylonmc.rebar.Rebar
 import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.event.RebarBlockBreakEvent
+import io.github.pylonmc.rebar.event.RebarBlockLoadEvent
 import io.github.pylonmc.rebar.event.RebarBlockPlaceEvent
 import io.github.pylonmc.rebar.util.delayTicks
 import kotlinx.coroutines.launch
@@ -34,13 +35,16 @@ object DataGraphListener : Listener {
         }
     }
 
+    @Suppress("unused")
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private fun onConnect(e: DataConnectEvent) = relinkLater(e.block1, e.block2)
 
+    @Suppress("unused")
     @EventHandler(priority = EventPriority.MONITOR)
     private fun onDisconnect(e: DataDisconnectEvent) = relinkLater(e.block1, e.block2)
 
-    @EventHandler
+    @Suppress("unused")
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private fun onBreak(event: RebarBlockBreakEvent) {
         val endpoint = event.rebarBlock as? DataEndpoint ?: return
 
@@ -67,7 +71,8 @@ object DataGraphListener : Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @Suppress("unused")
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private fun onPlace(event: RebarBlockPlaceEvent) {
         val endpoint = event.rebarBlock as? DataEndpoint ?: return
 
@@ -81,7 +86,8 @@ object DataGraphListener : Listener {
         }
     }
 
-    @EventHandler
+    @Suppress("unused")
+    @EventHandler(priority = EventPriority.MONITOR)
     private fun onEntityRemove(event: EntityRemoveEvent) {
         if (event.cause == EntityRemoveEvent.Cause.UNLOAD || event.cause == EntityRemoveEvent.Cause.PLAYER_QUIT) return
 
@@ -91,6 +97,14 @@ object DataGraphListener : Listener {
 
             block.heldEntities.entries.removeIf { it.value == event.entity.uniqueId }
         }
+    }
+
+    @Suppress("unused")
+    @EventHandler(priority = EventPriority.MONITOR)
+    private fun onLoad(e: RebarBlockLoadEvent) {
+        val endpoint = e.rebarBlock as? DataEndpoint ?: return
+
+        relinkLater(endpoint)
     }
 
     private fun relinkLater(vararg nodes: DataNode) {
