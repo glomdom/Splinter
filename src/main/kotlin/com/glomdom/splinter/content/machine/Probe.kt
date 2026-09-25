@@ -50,10 +50,10 @@ class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, Dat
         get() = linkedTo != null
 
     override val dataPorts: Map<BlockFace, DataPort> = mapOf(
-        BlockFace.EAST to DataPort.OUTPUT,
-        BlockFace.WEST to DataPort.OUTPUT,
-        BlockFace.NORTH to DataPort.OUTPUT,
-        BlockFace.SOUTH to DataPort.OUTPUT,
+        BlockFace.EAST to DataPort(this, BlockFace.EAST, DataPort.Kind.OUTPUT),
+        BlockFace.WEST to DataPort(this, BlockFace.WEST, DataPort.Kind.OUTPUT),
+        BlockFace.NORTH to DataPort(this, BlockFace.NORTH, DataPort.Kind.OUTPUT),
+        BlockFace.SOUTH to DataPort(this, BlockFace.SOUTH, DataPort.Kind.OUTPUT),
     )
 
     @Suppress("unused")
@@ -107,6 +107,7 @@ class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, Dat
         if (value == lastValue) return
 
         lastValue = value
+        dataPorts.values.forEach { it.emit(value!!) }
 
         getHeldEntity(TextDisplay::class.java, "value")
             ?.text(value?.let { UnitFormat.ITEMS.format(it).asComponent() })

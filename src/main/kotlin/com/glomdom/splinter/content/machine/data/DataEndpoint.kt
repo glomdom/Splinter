@@ -1,19 +1,9 @@
 package com.glomdom.splinter.content.machine.data
 
 import com.glomdom.splinter.event.DataConnectEvent
-import com.glomdom.splinter.event.DataDisconnectEvent
 import io.github.pylonmc.rebar.block.BlockStorage
-import io.github.pylonmc.rebar.entity.display.ItemDisplayBuilder
-import io.github.pylonmc.rebar.entity.display.transform.LineBuilder
-import io.github.pylonmc.rebar.event.RebarBlockBreakEvent
-import io.github.pylonmc.rebar.event.RebarBlockPlaceEvent
-import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import io.github.pylonmc.rebar.util.IMMEDIATE_FACES
-import org.bukkit.Material
 import org.bukkit.block.BlockFace
-import org.bukkit.event.EventHandler
-import org.bukkit.event.EventPriority
-import org.bukkit.event.Listener
 import org.joml.Vector3d
 
 interface DataEndpoint : DataNode {
@@ -21,15 +11,17 @@ interface DataEndpoint : DataNode {
 
     override fun canConnect(face: BlockFace) = face in dataPorts
 
+    fun onInput(port: DataPort) {}
+
     fun updateDirectlyConnectedFaces() {
         for (face in IMMEDIATE_FACES) {
             val myPort = dataPorts[face] ?: continue
-            if (myPort != DataPort.OUTPUT) continue
+            if (myPort.kind != DataPort.Kind.OUTPUT) continue
             if (getHeldEntity(DataDisplays.direct(face)) != null) continue
 
             val other = BlockStorage.get(block.getRelative(face))
             if (other !is DataEndpoint) continue
-            if (other.dataPorts[face.oppositeFace] != DataPort.INPUT) continue
+            if (other.dataPorts[face.oppositeFace]?.kind != DataPort.Kind.INPUT) continue
             if (!DataConnectEvent(this, other).callEvent()) continue
 
             val from = block.location.toCenterLocation()

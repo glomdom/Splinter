@@ -2,10 +2,14 @@ package com.glomdom.splinter.content.machine.data
 
 import com.glomdom.splinter.content.machine.data.DataWire.Companion.blocksKey
 import com.glomdom.splinter.content.machine.data.DataWire.Companion.blocksType
+import com.glomdom.splinter.event.DataConnectEvent
 import com.glomdom.splinter.event.DataDisconnectEvent
+import io.github.pylonmc.rebar.Rebar
 import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.event.RebarBlockBreakEvent
 import io.github.pylonmc.rebar.event.RebarBlockPlaceEvent
+import io.github.pylonmc.rebar.util.delayTicks
+import kotlinx.coroutines.launch
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -15,6 +19,27 @@ import org.bukkit.event.entity.EntityRemoveEvent
  * Listener for the graph functionality of data wires/related to them.
  */
 object DataGraphListener : Listener {
+    fun relink(endpoint: DataEndpoint) {
+        for (port in endpoint.dataPorts.values) {
+            val far = DataWire.trace(endpoint.block, port.face)
+                ?.let { (other, face) -> other.dataPorts[face] }
+                ?.takeIf { it.kind != port.kind }
+
+            if (far === port.peer) continue
+            if (far == null) {
+                port.unlink()
+            } else {
+                port.link(far)
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    private fun onConnect(e: DataConnectEvent) = relinkLater(e.block1, e.block2)
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    private fun onDisconnect(e: DataDisconnectEvent) = relinkLater(e.block1, e.block2)
+
     @EventHandler
     private fun onBreak(event: RebarBlockBreakEvent) {
         val endpoint = event.rebarBlock as? DataEndpoint ?: return
@@ -65,6 +90,26 @@ object DataGraphListener : Listener {
             val block = BlockStorage.get(blockPos) as? DataWire ?: continue
 
             block.heldEntities.entries.removeIf { it.value == event.entity.uniqueId }
+        }
+    }
+
+    private fun relinkLater(vararg nodes: DataNode) {
+        Rebar.scope.launch(Rebar.mainThreadDispatcher) {
+            delayTicks(1)
+
+            for (node in nodes) {
+                when (node) {
+                    is DataEndpoint -> {
+                        relink(node)
+                    }
+
+                    is DataWire -> {
+                        for (face in node.connectedFaces) {
+                            DataWire.trace(node.block, face)?.first?.let(::relink)
+                        }
+                    }
+                }
+            }
         }
     }
 }

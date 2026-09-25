@@ -13,21 +13,12 @@ import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.FacadeRebarBlock
 import io.github.pylonmc.rebar.datatypes.RebarSerializers
 import io.github.pylonmc.rebar.entity.EntityStorage
-import io.github.pylonmc.rebar.entity.display.ItemDisplayBuilder
-import io.github.pylonmc.rebar.entity.display.transform.LineBuilder
-import io.github.pylonmc.rebar.entity.display.transform.TransformBuilder
-import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import io.github.pylonmc.rebar.util.IMMEDIATE_FACES
-import io.github.pylonmc.rebar.util.position.BlockPosition
 import io.github.pylonmc.rebar.util.position.position
-import org.bukkit.Location
-import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.ItemDisplay
-import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.entity.EntityRemoveEvent
 import org.bukkit.persistence.PersistentDataContainer
 
 // huge thanks to https://github.com/pylonmc/rebar/blob/master/rebar/src/main/kotlin/io/github/pylonmc/rebar/content/cargo/CargoDuct.kt
@@ -41,10 +32,12 @@ class DataWire : RebarBlock, BlockBreakRebarBlockHandler, EntityHolderRebarBlock
     override val cullingGroups
         get() = renderer.faceGroups.values
 
+    @Suppress("unused")
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
         updateConnectedFaces()
     }
 
+    @Suppress("unused")
     constructor(block: Block, pdc: PersistentDataContainer) : super(block, pdc) {
         pdc.get(connectedFacesKey, connectedFacesType)?.let { connectedFaces = it.toMutableList() }
     }
@@ -56,6 +49,7 @@ class DataWire : RebarBlock, BlockBreakRebarBlockHandler, EntityHolderRebarBlock
     override fun postLoad() {
         for (face in connectedFaces) {
             val displayId = getHeldEntityUuid(DataDisplays.face(face)) ?: continue
+
             EntityStorage.whenEntityLoads(displayId) { display: ItemDisplay ->
                 if (renderer.faceGroups.containsKey(face)) {
                     return@whenEntityLoads
@@ -174,5 +168,33 @@ class DataWire : RebarBlock, BlockBreakRebarBlockHandler, EntityHolderRebarBlock
 
         val thicknessKey = splinterKey("thickness")
         val thicknessType = RebarSerializers.FLOAT
+
+        fun trace(start: Block, face: BlockFace): Pair<DataEndpoint, BlockFace>? {
+            var pos = start.getRelative(face)
+            var from = face.oppositeFace
+
+            repeat(MAX_LINE_LENGTH) {
+                when (val node = BlockStorage.get(pos)) {
+                    is DataWire -> {
+                        if (from !in node.connectedFaces) return null
+
+                        val next = node.connectedFaces.firstOrNull { it != from } ?: return null
+
+                        pos = pos.getRelative(next)
+                        from = next.oppositeFace
+                    }
+
+                    is DataEndpoint -> {
+                        return node to from
+                    }
+
+                    else -> {
+                        return null
+                    }
+                }
+            }
+
+            return null
+        }
     }
 }
