@@ -31,6 +31,7 @@ import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.entity.TextDisplay
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
@@ -169,13 +170,13 @@ class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource {
         private val filterKeyKey = splinterKey("filter_key")
 
         @Suppress("unused")
-        @EventHandler
+        @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
         private fun onLoad(e: RebarBlockLoadEvent) {
             (e.rebarBlock as? Probe)?.refreshValue()
         }
 
         @Suppress("unused")
-        @EventHandler
+        @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
         private fun onBreak(e: RebarBlockBreakEvent) {
             val probe = e.rebarBlock as? Probe ?: return
             val target = probe.linkedTo?.takeIf { it.isChunkLoaded } ?: return

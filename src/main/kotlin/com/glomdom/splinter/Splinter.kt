@@ -1,8 +1,8 @@
 package com.glomdom.splinter
 
+import com.glomdom.splinter.content.machine.Probe
 import com.glomdom.splinter.content.machine.Reader
 import com.glomdom.splinter.content.machine.Receiver
-import com.glomdom.splinter.content.machine.data.DataEndpoint
 import com.glomdom.splinter.content.machine.data.DataGraphListener
 import com.glomdom.splinter.guide.SplinterHelpPages
 import com.glomdom.splinter.guide.SplinterPages
@@ -29,6 +29,7 @@ object Splinter : JavaPlugin(), RebarAddon {
         val pm = server.pluginManager
         pm.registerEvents(Reader.Companion, this)
         pm.registerEvents(Receiver.Companion, this)
+        pm.registerEvents(Probe.Companion, this)
         pm.registerEvents(DataGraphListener, this)
     }
 
