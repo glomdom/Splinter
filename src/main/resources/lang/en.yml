@@ -33,6 +33,12 @@ item:
     lore: |-
       <arrow> Outputs a redstone signal based on the input data
 
+  constant:
+    name: "Constant"
+    lore: |-
+      <arrow> Outputs a constant value to every side
+      <arrow> <insn>Shift right click</insn> to change the constant
+
 reader:
   status:
     unlinked: "Status: <yellow>Unlinked</yellow>"
@@ -55,6 +61,9 @@ probe:
     none: "Filter: <red>None</red>"
     item: "Filter: <aqua>%item%</aqua>"
 
+constant:
+  value: "Constant: <aqua>%value%</aqua>"
+
 messages:
   linker:
     started_linking: "Started linking <green>%what%</green> <aqua>%x%, %y%, %z%</aqua>"
@@ -72,6 +81,10 @@ messages:
     capacity_full: "<red>%target% is full</red> (<aqua>%limit%</aqua> readers max)"
     too_far: "<red>Too far</red> - <aqua>%distance%</aqua> blocks, range is <aqua>%range%</aqua>"
 
+  constant:
+    invalid: "Invalid constant provided"
+    ok: "Successfully set constant"
+
 gui:
   filter:
     name: "Filter"
@@ -85,7 +98,17 @@ guide:
     help: "Splinter Help"
     splinter: "Splinter"
 
+dialog:
+  confirm: "Confirm"
+  cancel: "Cancel"
+
+  constant:
+    label: "Provide a constant to set"
+
 unit:
   reader:
     singular: "reader"
     plural: "readers"
+  redstone_strength:
+    singular: "strength"
+    plural: "strength"
