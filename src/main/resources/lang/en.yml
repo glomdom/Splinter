@@ -64,6 +64,12 @@ probe:
 constant:
   value: "Constant: <aqua>%value%</aqua>"
 
+boolean_comparer:
+  value:
+    a: "A: <aqua>%value%</aqua>"
+    b: "B: <aqua>%value%</aqua>"
+    output: "Output: <aqua>%value%</aqua>"
+
 messages:
   linker:
     started_linking: "Started linking <green>%what%</green> <aqua>%x%, %y%, %z%</aqua>"
