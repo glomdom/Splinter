@@ -1,6 +1,7 @@
 package com.glomdom.splinter.content.machine
 
-import com.glomdom.splinter.Splinter
+import com.glomdom.splinter.content.machine.data.DataEndpoint
+import com.glomdom.splinter.content.machine.data.DataPort
 import com.glomdom.splinter.datatypes.ItemKeyType
 import com.glomdom.splinter.interfaces.ItemKey
 import com.glomdom.splinter.interfaces.LinkSource
@@ -16,18 +17,15 @@ import io.github.pylonmc.rebar.block.interfaces.GuiRebarBlock
 import io.github.pylonmc.rebar.datatypes.RebarSerializers
 import io.github.pylonmc.rebar.event.RebarBlockBreakEvent
 import io.github.pylonmc.rebar.event.RebarBlockLoadEvent
-import io.github.pylonmc.rebar.i18n.RebarArgument
 import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import io.github.pylonmc.rebar.util.gui.GuiItems
 import io.github.pylonmc.rebar.util.gui.unit.UnitFormat
 import io.github.pylonmc.rebar.util.position.BlockPosition
 import io.github.pylonmc.rebar.util.position.position
 import io.papermc.paper.datacomponent.DataComponentTypes
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import org.bukkit.Material
 import org.bukkit.block.Block
+import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
 import org.bukkit.entity.TextDisplay
 import org.bukkit.event.EventHandler
@@ -39,9 +37,8 @@ import org.bukkit.persistence.PersistentDataContainer
 import xyz.xenondevs.invui.Click
 import xyz.xenondevs.invui.gui.Gui
 import xyz.xenondevs.invui.item.AbstractItem
-import xyz.xenondevs.invui.item.ItemProvider
 
-class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource {
+class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, DataEndpoint {
     private var linkedTo: BlockPosition? = null
     private var filterKey: ItemKey? = null
 
@@ -51,6 +48,13 @@ class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource {
     override val linkRange = 64 // todo: make this configurable
     override val isLinked: Boolean
         get() = linkedTo != null
+
+    override val dataPorts: Map<BlockFace, DataPort> = mapOf(
+        BlockFace.EAST to DataPort.OUTPUT,
+        BlockFace.WEST to DataPort.OUTPUT,
+        BlockFace.NORTH to DataPort.OUTPUT,
+        BlockFace.SOUTH to DataPort.OUTPUT,
+    )
 
     @Suppress("unused")
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
