@@ -2,6 +2,7 @@ package com.glomdom.splinter.interfaces
 
 import io.github.pylonmc.rebar.item.RebarItem
 import io.github.pylonmc.rebar.registry.RebarRegistry
+import io.papermc.paper.datacomponent.DataComponentTypes
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -10,7 +11,8 @@ import java.util.EnumMap
 
 sealed interface ItemKey {
     val name: Component
-        get() = Component.translatable(stack().translationKey())
+        get() = stack().getData(DataComponentTypes.ITEM_NAME)
+            ?: Component.translatable(stack().type.translationKey())
 
     fun stack(): ItemStack
 

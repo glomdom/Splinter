@@ -30,31 +30,31 @@ item:
 
 reader:
   status:
-    label: "Status: %status%"
-    unlinked: "<yellow>Unlinked</yellow>"
-    transmitting: "<green>Transmitting</green>"
+    unlinked: "Status: <yellow>Unlinked</yellow>"
+    transmitting: "Status: <green>Transmitting</green>"
   subject:
-    label: "Subject: %subject%"
-    invalid: "<red>Invalid</red>"
+    item: "Subject: <aqua>%subject%</aqua>"
+    invalid: "Subject: <red>Invalid</red>"
 
 receiver:
   status:
-    label: "Status: %status%"
-    unlinked: "<yellow>Unlinked</yellow>"
-    receiving: "<green>Receiving</green>"
-    error: "<red>Error</red>"
+    unlinked: "Status: <yellow>Unlinked</yellow>"
+    receiving: "Status: <green>Receiving</green>"
+    error: "Status: <red>Error</red."
 
 probe:
+  status:
+    unlinked: "Status: <yellow>Unlinked</yellow>"
+    receiving: "Status: <green>Receiving</green>"
   filter:
-    label: "Filter: %filter%"
-    none: "<red>None</red>"
-    item: "<green>%item%</green>"
+    none: "Filter: <red>None</red>"
+    item: "Filter: <aqua>%item%</aqua>"
 
 messages:
   linker:
     started_linking: "Started linking <green>%what%</green> <aqua>%x%, %y%, %z%</aqua>"
     stopped_linking: "Stopped linking"
-    already_linking: "Already linking <green>%what%</green> at <aqua>%x%, %y%, %z%</aqua>, <insn>Shift Right Click</insn> in the air to stop linking"
+    already_linking: "Already linking <green>%what%</green> at <aqua>%x%, %y%, %z%</aqua>, <insn>Shift right click</insn> in the air to stop linking"
 
     linked: "Linked <green>%source%</green> to <green>%target%</green> at <aqua>%x%, %y%, %z%</aqua>"
     unlinked: "Unlinked <green>%source%</green> from <green>%target%</green>"
@@ -70,10 +70,10 @@ messages:
 gui:
   filter:
     name: "Filter"
-    current: "Current: %current%"
-    none: "<red>None</red>"
-    item: "<green>%item%</green>"
-    hint: "<arrow> <insn>Left Click</insn> while holding an item to change the filter<br><arrow> <insn>Shift Left Click</insn> to clear"
+    current:
+      item: "<star> Current: <aqua>%name%</aqua>"
+      none: "<star> Current: <red>None</red>"
+    hint: "<arrow> <insn>Left click</insn> while holding an item to change the filter<br><arrow> <insn>Shift left click</insn> to clear"
 
 guide:
   page:

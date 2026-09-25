@@ -6,6 +6,7 @@ import com.glomdom.splinter.interfaces.LinkSource
 import com.glomdom.splinter.interfaces.LinkTarget
 import com.glomdom.splinter.splinterKey
 import com.glomdom.splinter.utilities.label
+import com.glomdom.splinter.utilities.tr
 import io.github.pylonmc.rebar.Rebar
 import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
@@ -15,11 +16,8 @@ import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.TickingRebarBlock
 import io.github.pylonmc.rebar.datatypes.RebarSerializers
 import io.github.pylonmc.rebar.entity.display.ItemDisplayBuilder
-import io.github.pylonmc.rebar.entity.display.TextDisplayBuilder
-import io.github.pylonmc.rebar.entity.display.transform.TransformBuilder
 import io.github.pylonmc.rebar.event.RebarBlockBreakEvent
 import io.github.pylonmc.rebar.event.RebarBlockLoadEvent
-import io.github.pylonmc.rebar.i18n.RebarArgument
 import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import io.github.pylonmc.rebar.util.delayTicks
 import io.github.pylonmc.rebar.util.gui.unit.UnitFormat
@@ -28,14 +26,12 @@ import io.github.pylonmc.rebar.util.position.position
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap
 import kotlinx.coroutines.launch
 import net.kyori.adventure.text.Component
-import org.bukkit.Color
 import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
 import org.bukkit.block.Chest
 import org.bukkit.block.Container
 import org.bukkit.block.DoubleChest
-import org.bukkit.entity.Display
 import org.bukkit.entity.TextDisplay
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -61,6 +57,7 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
     private var lastSubject: Material? = null
     private var lastTotal: Long? = null
 
+    @Suppress("unused")
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
         facing = if (ctx.player?.isSneaking == true) {
             ctx.facing.oppositeFace
@@ -84,6 +81,7 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
         refreshSubject()
     }
 
+    @Suppress("unused")
     constructor(block: Block, pdc: PersistentDataContainer) : super(block, pdc) {
         pdc.get(linkKey, RebarSerializers.BLOCK_POSITION)?.let { linkedTo = it }
     }
@@ -134,18 +132,13 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
 
         lastSubject = subject.type
 
-        val name = if (subject.getState(false) is Container) {
-            Component.translatable(subject.type.translationKey())
+        val text = if (subject.getState(false) is Container) {
+            tr("reader.subject.item", "subject" to Component.translatable(subject.type.translationKey()))
         } else {
-            Component.translatable("splinter.reader.subject.invalid")
+            tr("reader.subject.invalid")
         }
 
-        getHeldEntity(TextDisplay::class.java, "subject")?.text(
-            Component.translatable(
-                "splinter.reader.subject.label",
-                RebarArgument.of("subject", name)
-            )
-        )
+        getHeldEntity(TextDisplay::class.java, "subject")?.text(text)
 
         sync()
     }
@@ -160,18 +153,13 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
     }
 
     private fun refreshStatus() {
-        val status = if (linkedTo == null) {
-            "splinter.reader.status.unlinked"
+        val text = if (linkedTo == null) {
+            tr("reader.status.unlinked")
         } else {
-            "splinter.reader.status.transmitting"
+            tr("reader.status.transmitting")
         }
 
-        getHeldEntity(TextDisplay::class.java, "status")?.text(
-            Component.translatable(
-                "splinter.reader.status.label",
-                RebarArgument.of("status", Component.translatable(status))
-            )
-        )
+        getHeldEntity(TextDisplay::class.java, "status")?.text(text)
     }
 
     companion object : Listener {
@@ -224,6 +212,7 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
             }
         }
 
+        @Suppress("unused")
         @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
         private fun on(e: InventoryClickEvent) {
             e.clickedInventory?.let(::markInventory)
@@ -231,26 +220,32 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
             markInventory(e.view.topInventory)
         }
 
+        @Suppress("unused")
         @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
         private fun on(e: InventoryDragEvent) = markInventory(e.inventory)
 
+        @Suppress("unused")
         @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
         private fun on(e: InventoryMoveItemEvent) {
             markInventory(e.source)
             markInventory(e.destination)
         }
 
+        @Suppress("unused")
         @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
         private fun on(e: InventoryPickupItemEvent) = markInventory(e.inventory)
 
+        @Suppress("unused")
         @EventHandler(priority = EventPriority.MONITOR)
         private fun on(e: InventoryCloseEvent) = markInventory(e.inventory)
 
+        @Suppress("unused")
         @EventHandler
         private fun onLoad(e: RebarBlockLoadEvent) {
             (e.rebarBlock as? Reader)?.sync()
         }
 
+        @Suppress("unused")
         @EventHandler
         private fun onBreak(e: RebarBlockBreakEvent) {
             val reader = e.rebarBlock as? Reader ?: return
