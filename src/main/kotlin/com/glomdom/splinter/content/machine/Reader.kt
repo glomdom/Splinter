@@ -5,6 +5,7 @@ import com.glomdom.splinter.interfaces.ItemKey
 import com.glomdom.splinter.interfaces.LinkSource
 import com.glomdom.splinter.interfaces.LinkTarget
 import com.glomdom.splinter.splinterKey
+import com.glomdom.splinter.utilities.label
 import io.github.pylonmc.rebar.Rebar
 import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
@@ -75,9 +76,9 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
             it.scale(0.25, 0.25, 0.1)
         }.build(block.location.toCenterLocation()))
 
-        addEntity("status", label(0.95))
-        addEntity("subject", label(0.825))
-        addEntity("value", label(0.7))
+        addEntity("status", label(block, 0.95))
+        addEntity("subject", label(block, 0.825))
+        addEntity("value", label(block, 0.7))
 
         refreshStatus()
         refreshSubject()
@@ -172,13 +173,6 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
             )
         )
     }
-
-    private fun label(y: Double) =
-        TextDisplayBuilder()
-            .transformation(TransformBuilder().translate(0.0, y, 0.0).scale(0.6))
-            .billboard(Display.Billboard.VERTICAL)
-            .backgroundColor(Color.fromARGB(0))
-            .build(block.location.toCenterLocation())
 
     companion object : Listener {
         private val linkKey = splinterKey("linked_receiver")

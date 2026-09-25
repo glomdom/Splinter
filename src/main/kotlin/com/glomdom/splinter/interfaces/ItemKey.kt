@@ -1,13 +1,31 @@
 package com.glomdom.splinter.interfaces
 
 import io.github.pylonmc.rebar.item.RebarItem
+import io.github.pylonmc.rebar.registry.RebarRegistry
+import net.kyori.adventure.text.Component
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemStack
 import java.util.EnumMap
 
 sealed interface ItemKey {
-    data class Rebar(val id: String) : ItemKey
-    data class Vanilla(val type: Material) : ItemKey
+    val name: Component
+        get() = Component.translatable(stack().translationKey())
+
+    fun stack(): ItemStack
+
+    data class Rebar(val id: String) : ItemKey {
+        override fun stack(): ItemStack {
+            val schema = RebarRegistry.ITEMS[NamespacedKey.fromString(id)!!] ?: error("failed to get rebar item")
+
+            return schema.getItemStack()
+        }
+    }
+
+    data class Vanilla(val type: Material) : ItemKey {
+        override fun stack(): ItemStack =
+            ItemStack.of(type)
+    }
 
     companion object {
         private val rebar = HashMap<String, Rebar>()
@@ -21,6 +39,5 @@ sealed interface ItemKey {
 
             return vanilla.getOrPut(stack.type) { Vanilla(stack.type) }
         }
-
     }
 }

@@ -15,7 +15,13 @@ item:
   receiver:
     name: "Receiver"
     lore: |-
+      <arrow> The brains of a logistic network.
       <arrow> Receives data from one or more readers.
+
+  probe:
+    name: "Probe"
+    lore: |-
+      <arrow> Outputs the amount of the provided item from a receiver.
 
   data_wire:
     name: "Data Wire"
@@ -25,22 +31,11 @@ item:
 reader:
   status:
     label: "Status: %status%"
-    unconfigured: "<red>Unconfigured</red>"
     unlinked: "<yellow>Unlinked</yellow>"
     transmitting: "<green>Transmitting</green>"
   subject:
     label: "Subject: %subject%"
     invalid: "<red>Invalid</red>"
-    chest: "<gold>Chest</gold>"
-  config:
-    label: "Config: %config%"
-    none: "<red>None</red>"
-    count: "<aqua>Count</aqua>"
-  gui:
-    config:
-      name: "<white>Configuration"
-      current: "<gray>Current: %config%"
-      hint: "<insn>Click to cycle"
 
 receiver:
   status:
@@ -48,16 +43,12 @@ receiver:
     unlinked: "<yellow>Unlinked</yellow>"
     receiving: "<green>Receiving</green>"
     error: "<red>Error</red>"
-  config:
-    label: "Config: %config%"
-    sum: "<green>Sum</green>"
-    min: "<aqua>Min</aqua>"
-    max: "<blue>Max</blue>"
-  gui:
-    config:
-      name: "<white>Configuration"
-      current: "<gray>Current: %config%"
-      hint: "<insn>Click to cycle"
+
+probe:
+  filter:
+    label: "Filter: %filter%"
+    none: "<red>None</red>"
+    item: "<green>%item%</green>"
 
 messages:
   linker:
@@ -74,7 +65,15 @@ messages:
     different_world: "<red>Both blocks must be in the same world</red>"
     source_busy: "<red>%source% is already linked</red>"
     capacity_full: "<red>%target% is full</red> (<aqua>%limit%</aqua> readers max)"
-    too_far: "<red>Too far</red> — <aqua>%distance%</aqua> blocks, range is <aqua>%range%</aqua>"
+    too_far: "<red>Too far</red> - <aqua>%distance%</aqua> blocks, range is <aqua>%range%</aqua>"
+
+gui:
+  filter:
+    name: "Filter"
+    current: "Current: %current%"
+    none: "<red>None</red>"
+    item: "<green>%item%</green>"
+    hint: "<arrow> <insn>Left Click</insn> while holding an item to change the filter<br><arrow> <insn>Shift Left Click</insn> to clear"
 
 guide:
   page:
