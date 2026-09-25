@@ -21,6 +21,7 @@ import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
+import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.TextDisplay
@@ -61,13 +62,15 @@ class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, 
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
         if (!event.player.isSneaking) return
 
+        val locale = event.player.locale()
+
         val dialog = Dialog.create { builder ->
             builder.empty()
                 .base(
-                    DialogBase.builder(tr("dialog.constant.title"))
+                    DialogBase.builder(GlobalTranslator.render(tr("dialog.constant.title"), locale))
                         .inputs(
                             listOf(
-                                DialogInput.text("value", tr("dialog.constant.label"))
+                                DialogInput.text("value", GlobalTranslator.render(tr("dialog.constant.label"), locale))
                                     .initial(constant.toString())
                                     .maxLength(20)
                                     .build()
@@ -77,7 +80,7 @@ class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, 
                 )
                 .type(
                     DialogType.confirmation(
-                        ActionButton.builder(tr("dialog.confirm"))
+                        ActionButton.builder(GlobalTranslator.render(tr("dialog.confirm"), locale))
                             .action(
                                 DialogAction.customClick(
                                     { response, _ ->
@@ -95,7 +98,7 @@ class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, 
                                 )
                             )
                             .build(),
-                        ActionButton.builder(tr("dialog.cancel")).build()
+                        ActionButton.builder(GlobalTranslator.render(tr("dialog.cancel"), locale)).build()
                     )
                 )
         }

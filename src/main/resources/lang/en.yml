@@ -109,6 +109,7 @@ dialog:
   cancel: "Cancel"
 
   constant:
+    title: "Constant configuration"
     label: "Provide a constant to set"
 
 unit:
