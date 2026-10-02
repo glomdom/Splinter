@@ -2,6 +2,8 @@ package com.glomdom.splinter.content.machine
 
 import com.glomdom.splinter.content.machine.data.DataEndpoint
 import com.glomdom.splinter.content.machine.data.DataPort
+import com.glomdom.splinter.content.machine.data.ReceiverLink
+import com.glomdom.splinter.content.machine.data.ReceiverLinked
 import com.glomdom.splinter.datatypes.ItemKeyType
 import com.glomdom.splinter.interfaces.ItemKey
 import com.glomdom.splinter.interfaces.LinkSource
@@ -9,19 +11,14 @@ import com.glomdom.splinter.interfaces.LinkTarget
 import com.glomdom.splinter.splinterKey
 import com.glomdom.splinter.utilities.label
 import com.glomdom.splinter.utilities.tr
-import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
 import io.github.pylonmc.rebar.block.context.BlockCreateContext
 import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.GuiRebarBlock
-import io.github.pylonmc.rebar.datatypes.RebarSerializers
-import io.github.pylonmc.rebar.event.RebarBlockBreakEvent
 import io.github.pylonmc.rebar.event.RebarBlockLoadEvent
 import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import io.github.pylonmc.rebar.util.gui.GuiItems
 import io.github.pylonmc.rebar.util.gui.unit.UnitFormat
-import io.github.pylonmc.rebar.util.position.BlockPosition
-import io.github.pylonmc.rebar.util.position.position
 import io.papermc.paper.datacomponent.DataComponentTypes
 import org.bukkit.Material
 import org.bukkit.block.Block
@@ -38,16 +35,15 @@ import xyz.xenondevs.invui.Click
 import xyz.xenondevs.invui.gui.Gui
 import xyz.xenondevs.invui.item.AbstractItem
 
-class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, DataEndpoint {
-    private var linkedTo: BlockPosition? = null
+class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, ReceiverLinked, DataEndpoint {
     private var filterKey: ItemKey? = null
 
     private var filterItem: FilterItem? = null
     private var lastValue: Long? = null
 
     override val linkRange = 64 // todo: make this configurable
-    override val isLinked: Boolean
-        get() = linkedTo != null
+
+    override val link = ReceiverLink()
 
     override val dataPorts: Map<BlockFace, DataPort> = mapOf(
         BlockFace.EAST to DataPort(this, BlockFace.EAST, DataPort.Kind.OUTPUT),
@@ -68,12 +64,14 @@ class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, Dat
 
     @Suppress("unused")
     constructor(block: Block, pdc: PersistentDataContainer) : super(block, pdc) {
-        pdc.get(linkKey, RebarSerializers.BLOCK_POSITION)?.let { linkedTo = it }
+        link.load(pdc)
+
         pdc.get(filterKeyKey, ItemKeyType)?.let { filterKey = it }
     }
 
     override fun write(pdc: PersistentDataContainer) {
-        linkedTo?.let { pdc.set(linkKey, RebarSerializers.BLOCK_POSITION, it) }
+        link.save(pdc)
+
         filterKey?.let { pdc.set(filterKeyKey, ItemKeyType, it) }
     }
 
@@ -85,23 +83,21 @@ class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, Dat
             .build()
 
     override fun onLinked(target: LinkTarget) {
-        linkedTo = target.block.position
+        link.attach(target)
 
         refreshStatus()
         refreshValue()
     }
 
     override fun onUnlinked(target: LinkTarget) {
-        linkedTo = null
+        link.detach()
 
         refreshStatus()
     }
 
     fun refreshValue() {
         val key = filterKey
-        val receiver = linkedTo
-            ?.takeIf { it.isChunkLoaded }
-            ?.let { BlockStorage.getAs<Receiver>(it) }
+        val receiver = link.receiver
 
         val value = if (key == null || receiver == null) null else receiver.count(key)
         if (value == lastValue) return
@@ -121,7 +117,7 @@ class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, Dat
     }
 
     private fun refreshStatus() {
-        val text = if (linkedTo == null) {
+        val text = if (link.receiver == null) {
             tr("probe.status.unlinked")
         } else {
             tr("probe.status.receiving")
@@ -171,22 +167,12 @@ class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, Dat
     }
 
     companion object : Listener {
-        private val linkKey = splinterKey("linked_receiver")
         private val filterKeyKey = splinterKey("filter_key")
 
         @Suppress("unused")
         @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
         private fun onLoad(e: RebarBlockLoadEvent) {
             (e.rebarBlock as? Probe)?.refreshValue()
-        }
-
-        @Suppress("unused")
-        @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-        private fun onBreak(e: RebarBlockBreakEvent) {
-            val probe = e.rebarBlock as? Probe ?: return
-            val target = probe.linkedTo?.takeIf { it.isChunkLoaded } ?: return
-
-            BlockStorage.getAs<Receiver>(target)?.removeSource(probe)
         }
     }
 }
