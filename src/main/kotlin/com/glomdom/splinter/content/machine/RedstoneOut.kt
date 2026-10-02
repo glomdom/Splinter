@@ -3,6 +3,7 @@ package com.glomdom.splinter.content.machine
 import com.glomdom.splinter.content.machine.data.DataEndpoint
 import com.glomdom.splinter.content.machine.data.DataPort
 import com.glomdom.splinter.extensions.REDSTONE_STRENGTH
+import com.glomdom.splinter.extensions.addPortMarkers
 import com.glomdom.splinter.extensions.plus
 import com.glomdom.splinter.utilities.label
 import com.glomdom.splinter.utilities.tr
@@ -24,9 +25,6 @@ import org.bukkit.event.Listener
 import org.bukkit.persistence.PersistentDataContainer
 
 class RedstoneOut : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, DataEndpoint {
-    val inputFaceStack: ItemStackBuilder = ItemStackBuilder.of(Material.RED_CONCRETE)
-        .addCustomModelDataString(key + ":inputFace")
-
     private var lastOutput = 0
 
     override val dataPorts by lazy {
@@ -41,12 +39,7 @@ class RedstoneOut : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, D
             ctx.facing
         }
 
-        addEntity("inputFace", ItemDisplayBuilder().itemStack(inputFaceStack).transformation {
-            it.lookAlong(facing.oppositeFace)
-            it.translate(0.0, 0.0, -0.5)
-            it.scale(0.25, 0.25, 0.1)
-        }.build(block.location.toCenterLocation()))
-
+        addPortMarkers()
         addEntity("output_strength", label(block, 0.95))
 
         refreshOutputStrength()
