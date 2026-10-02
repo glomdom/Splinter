@@ -42,7 +42,6 @@ class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, Rec
     private var lastValue: Long? = null
 
     override val linkRange = 64 // todo: make this configurable
-
     override val link = ReceiverLink()
 
     override val dataPorts: Map<BlockFace, DataPort> = mapOf(

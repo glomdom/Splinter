@@ -1,5 +1,7 @@
 package com.glomdom.splinter.content.machine
 
+import com.glomdom.splinter.content.machine.data.ReceiverLink
+import com.glomdom.splinter.content.machine.data.ReceiverLinked
 import com.glomdom.splinter.extensions.plus
 import com.glomdom.splinter.interfaces.ItemKey
 import com.glomdom.splinter.interfaces.LinkSource
@@ -43,16 +45,15 @@ import org.bukkit.event.inventory.InventoryMoveItemEvent
 import org.bukkit.event.inventory.InventoryPickupItemEvent
 import org.bukkit.inventory.BlockInventoryHolder
 import org.bukkit.inventory.Inventory
+import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
 
-class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, TickingRebarBlock, LinkSource {
+class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, TickingRebarBlock, ReceiverLinked, LinkSource {
     val readerFaceStack: ItemStackBuilder = ItemStackBuilder.of(Material.BLUE_CONCRETE)
         .addCustomModelDataString(key + ":readerFace")
 
     override val linkRange = 64
-    override val isLinked get() = linkedTo != null
-
-    private var linkedTo: BlockPosition? = null
+    override val link = ReceiverLink()
 
     private var lastSubject: Material? = null
     private var lastTotal: Long? = null
@@ -83,24 +84,24 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
 
     @Suppress("unused")
     constructor(block: Block, pdc: PersistentDataContainer) : super(block, pdc) {
-        pdc.get(linkKey, RebarSerializers.BLOCK_POSITION)?.let { linkedTo = it }
+        link.load(pdc)
     }
 
     override fun write(pdc: PersistentDataContainer) {
-        linkedTo?.let { pdc.set(linkKey, RebarSerializers.BLOCK_POSITION, it) }
+        link.save(pdc)
     }
 
     override fun tick() = refreshSubject()
 
     override fun onLinked(target: LinkTarget) {
-        linkedTo = target.block.position
+        link.attach(target)
 
         refreshStatus()
         sync()
     }
 
     override fun onUnlinked(target: LinkTarget) {
-        linkedTo = null
+        link.detach()
 
         refreshStatus()
     }
@@ -122,8 +123,27 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
 
         refreshValue(total.takeIf { container != null })
 
-        val target = linkedTo?.takeIf { it.isChunkLoaded } ?: return
-        BlockStorage.getAs<Receiver>(target)?.update(block.position, counts)
+        val target = link.receiver ?: return
+        target.update(block.position, counts)
+    }
+
+    fun extract(key: ItemKey, amount: Int): ItemStack? {
+        val inv = (block.getRelative(facing).getState(false) as? Container)?.inventory ?: return null
+
+        for (slot in 0 until inv.size) {
+            val stack = inv.getItem(slot) ?: continue
+            if (stack.isEmpty || ItemKey.of(stack) != key) continue
+
+            val n = minOf(amount, stack.amount)
+            val taken = stack.clone().apply { this.amount = n }
+
+            inv.setItem(slot, if (stack.amount == n) null else stack.clone().apply { this.amount -= n })
+            sync()
+
+            return taken
+        }
+
+        return null
     }
 
     private fun refreshSubject() {
@@ -153,7 +173,7 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
     }
 
     private fun refreshStatus() {
-        val text = if (linkedTo == null) {
+        val text = if (link.receiver == null) {
             tr("reader.status.unlinked")
         } else {
             tr("reader.status.transmitting")
@@ -163,8 +183,6 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
     }
 
     companion object : Listener {
-        private val linkKey = splinterKey("linked_receiver")
-
         private val faces = listOf(
             BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST,
             BlockFace.WEST, BlockFace.UP, BlockFace.DOWN,
@@ -243,15 +261,6 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
         @EventHandler
         private fun onLoad(e: RebarBlockLoadEvent) {
             (e.rebarBlock as? Reader)?.sync()
-        }
-
-        @Suppress("unused")
-        @EventHandler
-        private fun onBreak(e: RebarBlockBreakEvent) {
-            val reader = e.rebarBlock as? Reader ?: return
-            val target = reader.linkedTo?.takeIf { it.isChunkLoaded } ?: return
-
-            BlockStorage.getAs<Receiver>(target)?.removeSource(reader)
         }
     }
 }

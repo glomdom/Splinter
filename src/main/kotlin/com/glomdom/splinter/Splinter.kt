@@ -6,6 +6,7 @@ import com.glomdom.splinter.content.machine.Reader
 import com.glomdom.splinter.content.machine.Receiver
 import com.glomdom.splinter.content.machine.RedstoneOut
 import com.glomdom.splinter.content.machine.data.DataGraphListener
+import com.glomdom.splinter.content.machine.data.ReceiverLinkListener
 import com.glomdom.splinter.guide.SplinterHelpPages
 import com.glomdom.splinter.guide.SplinterPages
 import com.glomdom.splinter.registry.SplinterBlocks
@@ -35,6 +36,7 @@ object Splinter : JavaPlugin(), RebarAddon {
         pm.registerEvents(RedstoneOut.Companion, this)
         pm.registerEvents(Constant.Companion, this)
         pm.registerEvents(DataGraphListener, this)
+        pm.registerEvents(ReceiverLinkListener, this)
     }
 
     override val javaPlugin = this
