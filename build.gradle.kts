@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "com.glomdom"
-version = "1.0-SNAPSHOT"
+version = providers.gradleProperty("releaseVersion").getOrElse("1.0-SNAPSHOT")
 
 val rebarVersion = providers.gradleProperty("rebar.version").get()
 val pylonVersion = providers.gradleProperty("pylon.version").get()
