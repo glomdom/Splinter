@@ -5,6 +5,7 @@ import com.glomdom.splinter.content.machine.data.DataPort
 import com.glomdom.splinter.content.machine.data.ReceiverLink
 import com.glomdom.splinter.content.machine.data.ReceiverLinked
 import com.glomdom.splinter.datatypes.ItemKeyType
+import com.glomdom.splinter.extensions.addPortMarkers
 import com.glomdom.splinter.interfaces.ItemKey
 import com.glomdom.splinter.interfaces.LinkSource
 import com.glomdom.splinter.interfaces.LinkTarget
@@ -56,6 +57,8 @@ class Probe : RebarBlock, EntityHolderRebarBlock, GuiRebarBlock, LinkSource, Rec
         addEntity("status", label(block, 0.95))
         addEntity("filter", label(block, 0.825))
         addEntity("value", label(block, 0.7))
+
+        addPortMarkers()
 
         refreshFilter()
         refreshStatus()
