@@ -2,8 +2,12 @@ package com.glomdom.splinter.content.machine.data
 
 import com.glomdom.splinter.event.DataConnectEvent
 import io.github.pylonmc.rebar.block.BlockStorage
+import io.github.pylonmc.rebar.entity.display.ItemDisplayBuilder
+import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import io.github.pylonmc.rebar.util.IMMEDIATE_FACES
+import org.bukkit.Material
 import org.bukkit.block.BlockFace
+import org.bukkit.entity.ItemDisplay
 import org.joml.Vector3d
 
 interface DataEndpoint : DataNode {

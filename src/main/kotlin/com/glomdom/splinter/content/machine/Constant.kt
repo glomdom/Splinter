@@ -2,6 +2,7 @@ package com.glomdom.splinter.content.machine
 
 import com.glomdom.splinter.content.machine.data.DataEndpoint
 import com.glomdom.splinter.content.machine.data.DataPort
+import com.glomdom.splinter.extensions.addPortMarkers
 import com.glomdom.splinter.splinterKey
 import com.glomdom.splinter.utilities.label
 import com.glomdom.splinter.utilities.tr
@@ -12,7 +13,6 @@ import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.InteractRebarBlockHandler
 import io.github.pylonmc.rebar.datatypes.RebarSerializers
 import io.github.pylonmc.rebar.event.RebarBlockLoadEvent
-import io.github.pylonmc.rebar.i18n.RebarTranslator
 import io.papermc.paper.dialog.Dialog
 import io.papermc.paper.registry.data.dialog.ActionButton
 import io.papermc.paper.registry.data.dialog.DialogBase
@@ -44,6 +44,7 @@ class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, 
     @Suppress("unused")
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
         addEntity("constant", label(block, 0.95))
+        addPortMarkers()
 
         refreshConstant()
     }
