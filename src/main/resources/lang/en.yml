@@ -1,148 +1,150 @@
 addon: Splinter
 
 item:
-  reader:
-    name: "Reader"
-    lore: |-
-      <arrow> Reads a configurable state from a block
-      <arrow> Must be linked to a receiver to send data
-
   linker_tool:
     name: "Linker"
     lore: |-
-      <arrow> Links a reader to a receiver
+      <arrow> Links readers, probes and spillers to a receiver
+      <arrow> <insn>Right click</insn> a block to start, then the receiver to finish
+      <arrow> <insn>Shift right click</insn> in the air to cancel
+
+  reader:
+    name: "Reader"
+    lore: |-
+      <arrow> Reports the contents of the inventory it faces
+      <arrow> Must be linked to a receiver
 
   receiver:
     name: "Receiver"
     lore: |-
-      <arrow> The brains of a logistic network
-      <arrow> Receives data from one or more readers
+      <arrow> The brain of a logistics network
+      <arrow> Collects the contents of every linked reader
 
   probe:
     name: "Probe"
     lore: |-
-      <arrow> Outputs the amount of the provided item from a receiver
-
-  data_wire:
-    name: "Data Wire"
-    lore: |-
-      <arrow> Kompooter, send ones and zeroes
-
-  redstone_out:
-    name: "Redstone Out"
-    lore: |-
-      <arrow> Outputs a redstone signal based on the input data
-
-  constant:
-    name: "Constant"
-    lore: |-
-      <arrow> Outputs a constant value to every side
-      <arrow> <insn>Shift right click</insn> to change the constant
-
-  boolean_comparer:
-    name: "Boolean Comparer"
-    lore: |-
-      <arrow> Compares A with B
-      <arrow> <insn>Shift right click</insn> to change the operation
-      <arrow> A is the input from the <aqua>Blue</aqua> port
-      <arrow> B is the input from the <red>Red</red> port
+      <arrow> Outputs how many of the filtered item the network holds
+      <arrow> Must be linked to a receiver
 
   spiller:
     name: "Spiller"
     lore: |-
-      <arrow> Spills provided items into the attached inventory
+      <arrow> Keeps the inventory it faces stocked with the filtered item
+      <arrow> Input: how many to <aqua>keep</aqua>
+      <arrow> Output: <aqua>1</aqua> once the target is stocked
+
+  data_wire:
+    name: "Data Wire"
+    lore: |-
+      <arrow> Carries a number from one port to another
+      <arrow> Kompooter, send ones and zeroes
+
+  constant:
+    name: "Constant"
+    lore: |-
+      <arrow> Outputs a fixed number on every side
+      <arrow> <insn>Shift right click</insn> to change it
+
+  boolean_comparer:
+    name: "Boolean Comparer"
+    lore: |-
+      <arrow> Outputs <aqua>1</aqua> when A and B compare true, otherwise <aqua>0</aqua>
+      <arrow> A is the <blue>blue</blue> port, B is the <red>red</red> port
+      <arrow> <insn>Shift right click</insn> with an empty hand to change the operation
+
+  redstone_out:
+    name: "Redstone Out"
+    lore: |-
+      <arrow> Emits a redstone signal equal to its input, from <aqua>0</aqua> to <aqua>15</aqua>
+
+filter:
+  item: "<gray>Filter:</gray> <aqua>%item%</aqua>"
+  none: "<gray>Filter:</gray> <red>None</red>"
 
 reader:
   status:
-    unlinked: "Status: <yellow>Unlinked</yellow>"
-    transmitting: "Status: <green>Transmitting</green>"
+    unlinked: "<gray>Status:</gray> <yellow>Unlinked</yellow>"
+    transmitting: "<gray>Status:</gray> <green>Transmitting</green>"
   subject:
-    item: "Subject: <aqua>%subject%</aqua>"
-    invalid: "Subject: <red>Invalid</red>"
+    item: "<gray>Reading:</gray> <aqua>%subject%</aqua>"
+    invalid: "<gray>Reading:</gray> <red>Nothing</red>"
 
 receiver:
   status:
-    unlinked: "Status: <yellow>Unlinked</yellow>"
-    receiving: "Status: <green>Receiving</green>"
-    error: "Status: <red>Error</red."
+    unlinked: "<gray>Status:</gray> <yellow>No readers</yellow>"
+    receiving: "<gray>Status:</gray> <green>Receiving</green>"
 
 probe:
   status:
-    unlinked: "Status: <yellow>Unlinked</yellow>"
-    receiving: "Status: <green>Receiving</green>"
-  filter:
-    none: "Filter: <red>None</red>"
-    item: "Filter: <aqua>%item%</aqua>"
-
-constant:
-  value: "Constant: <aqua>%value%</aqua>"
-
-boolean_comparer:
-  operation: "<aqua>A</aqua> <gold>%op%</gold> <aqua>B</aqua>"
-  values: "<aqua>%a%</aqua> <gold>%op%</gold> <aqua>%b%</aqua>"
-  output:
-    high: "Output: <green>1</green>"
-    low: "Output: <red>0</red>"
+    unlinked: "<gray>Status:</gray> <yellow>Unlinked</yellow>"
+    receiving: "<gray>Status:</gray> <green>Receiving</green>"
 
 spiller:
   status:
-    unlinked: "Status: <red>Unlinked</red>"
-    no_filter: "Status: <red>No filter</red>"
-    invalid_target: "Status: <red>Invalid target</red>"
-    no_pattern: "Status: <yellow>No pattern</yellow>"
-    idle: "Status: <gray>Idle</gray>"
-    satisfied: "Status: <aqua>Satisfied</aqua>"
-    spilling: "Status: <green>Spilling</green>"
-    no_stock: "Status: <red>No stock</red>"
-    target_full: "Status: <yellow>Target full</yellow>"
-  filter:
-    item: "Filter: <aqua>%item%</aqua>"
-    none: "Filter: <red>None</red>"
-  keep: "Keep: <aqua>%keep%</aqua>"
-  keep_has: "Keep: <aqua>%keep%</aqua> | Has: <aqua>%has%</aqua>"
-  slots: "Slots: <gold>%slots%</gold>"
+    unlinked: "<gray>Status:</gray> <yellow>Unlinked</yellow>"
+    no_filter: "<gray>Status:</gray> <yellow>No filter</yellow>"
+    no_pattern: "<gray>Status:</gray> <yellow>No pattern</yellow>"
+    idle: "<gray>Status:</gray> <dark_gray>Idle</dark_gray>"
+    spilling: "<gray>Status:</gray> <green>Spilling</green>"
+    satisfied: "<gray>Status:</gray> <aqua>Satisfied</aqua>"
+    no_stock: "<gray>Status:</gray> <red>No stock</red>"
+    target_full: "<gray>Status:</gray> <red>Target full</red>"
+    invalid_target: "<gray>Status:</gray> <red>Invalid target</red>"
+  keep: "<gray>Keep:</gray> <aqua>%keep%</aqua>"
+  keep_has: "<gray>Keep:</gray> <aqua>%keep%</aqua> <dark_gray>|</dark_gray> <gray>Has:</gray> <aqua>%has%</aqua>"
+  slots: "<gray>Slots:</gray> <gold>%slots%</gold>"
 
-messages:
-  linker:
-    started_linking: "Started linking <green>%what%</green> <aqua>%x%, %y%, %z%</aqua>"
-    stopped_linking: "Stopped linking"
-    already_linking: "Already linking <green>%what%</green> at <aqua>%x%, %y%, %z%</aqua>, <insn>Shift right click</insn> in the air to stop linking"
+constant:
+  value: "<gray>Value:</gray> <aqua>%value%</aqua>"
 
-    linked: "Linked <green>%source%</green> to <green>%target%</green> at <aqua>%x%, %y%, %z%</aqua>"
-    unlinked: "Unlinked <green>%source%</green> from <green>%target%</green>"
-
-    incompatible: "<red>Those two blocks can't be linked</red>"
-    invalid: "<red>This block cannot be linked</red>"
-    same_block: "<red>Can't link a block to itself</red>"
-    different_world: "<red>Both blocks must be in the same world</red>"
-    source_busy: "<red>%source% is already linked</red>"
-    capacity_full: "<red>%target% is full</red> (<aqua>%limit%</aqua> readers max)"
-    too_far: "<red>Too far</red> - <aqua>%distance%</aqua> blocks, range is <aqua>%range%</aqua>"
-
-  constant:
-    invalid: "Invalid constant provided"
-    ok: "Successfully set constant"
+boolean_comparer:
+  operation: "<blue>A</blue> <gold>%op%</gold> <red>B</red>"
+  values: "<aqua>%a%</aqua> <gold>%op%</gold> <aqua>%b%</aqua>"
+  output:
+    high: "<gray>Output:</gray> <green>1</green>"
+    low: "<gray>Output:</gray> <red>0</red>"
 
 gui:
   filter:
     name: "Filter"
     current:
-      item: "<star> Current: <aqua>%name%</aqua>"
-      none: "<star> Current: <red>None</red>"
-    hint: "<arrow> <insn>Left click</insn> while holding an item to change the filter<br><arrow> <insn>Shift left click</insn> to clear"
-
-guide:
-  page:
-    help: "Splinter Help"
-    splinter: "Splinter"
+      item: "<star> <gray>Current:</gray> <aqua>%name%</aqua>"
+      none: "<star> <gray>Current:</gray> <red>None</red>"
+    hint: "<arrow> <insn>Left click</insn> while holding an item to set the filter<br><arrow> <insn>Shift left click</insn> to clear it"
 
 dialog:
   confirm: "Confirm"
   cancel: "Cancel"
 
   constant:
-    title: "Constant configuration"
-    label: "Provide a constant to set"
+    title: "Set constant"
+    label: "Value"
+
+messages:
+  linker:
+    started_linking: "Linking <green>%what%</green> at <aqua>%x%, %y%, %z%</aqua>"
+    stopped_linking: "<gray>Stopped linking</gray>"
+    already_linking: "Already linking <green>%what%</green> at <aqua>%x%, %y%, %z%</aqua> <dark_gray>-</dark_gray> <insn>Shift right click</insn> in the air to stop"
+
+    linked: "Linked <green>%source%</green> to <green>%target%</green> at <aqua>%x%, %y%, %z%</aqua>"
+    unlinked: "Unlinked <green>%source%</green> from <green>%target%</green>"
+
+    incompatible: "<red>Those two blocks can't be linked</red>"
+    invalid: "<red>This block can't be linked</red>"
+    same_block: "<red>A block can't be linked to itself</red>"
+    different_world: "<red>Both blocks must be in the same world</red>"
+    source_busy: "<red>%source% is already linked</red>"
+    capacity_full: "<red>%target% is full</red> <dark_gray>-</dark_gray> <aqua>%limit%</aqua> readers max"
+    too_far: "<red>Too far</red> <dark_gray>-</dark_gray> <aqua>%distance%</aqua> blocks, range is <aqua>%range%</aqua>"
+
+  constant:
+    invalid: "<red>That's not a whole number</red>"
+    ok: "<green>Constant set</green>"
+
+guide:
+  page:
+    help: "Splinter Help"
+    splinter: "Splinter"
 
 unit:
   reader:

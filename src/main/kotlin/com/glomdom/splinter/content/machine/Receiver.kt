@@ -6,7 +6,7 @@ import com.glomdom.splinter.interfaces.ItemKey
 import com.glomdom.splinter.interfaces.LinkSource
 import com.glomdom.splinter.interfaces.LinkTarget
 import com.glomdom.splinter.splinterKey
-import com.glomdom.splinter.utilities.label
+import com.glomdom.splinter.utilities.Labels
 import com.glomdom.splinter.utilities.tr
 import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
@@ -21,8 +21,8 @@ import io.github.pylonmc.rebar.util.position.position
 import it.unimi.dsi.fastutil.objects.Object2LongMaps
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap
 import org.bukkit.block.Block
-import org.bukkit.entity.TextDisplay
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
@@ -33,18 +33,18 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
     private var spillers = mutableSetOf<BlockPosition>()
     private val aggregate = Object2LongOpenHashMap<ItemKey>()
 
+    private val labels = Labels(this)
+
     var total = 0L
         private set
 
-    override val linkCapacity = 4
+    override val linkCapacity = 32
     override val sourceCount
         get() = contributions.size
 
     @Suppress("unused")
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
-        addEntity("status", label(block, 0.95))
-        addEntity("readers", label(block, 0.825))
-        addEntity("value", label(block, 0.7))
+        labels.create("status", "readers", "value")
 
         refresh()
     }
@@ -122,14 +122,8 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
         addAll(previous, -1)
         addAll(counts, 1)
 
-        refreshValue()
+        refresh()
         notifyProbes()
-    }
-
-    fun refresh() {
-        refreshReaders()
-        refreshStatus()
-        refreshValue()
     }
 
     fun take(key: ItemKey, amount: Int): ItemStack? {
@@ -145,6 +139,12 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
         return null
     }
 
+    fun refresh() {
+        labels["status"] = if (contributions.isEmpty()) tr("receiver.status.unlinked") else tr("receiver.status.receiving")
+        labels["readers"] = UnitFormat.READER.format(sourceCount).asComponent()
+        labels["value"] = UnitFormat.ITEMS.format(total).asComponent()
+    }
+
     private fun addAll(counts: Object2LongOpenHashMap<ItemKey>, sign: Long) {
         Object2LongMaps.fastForEach(counts) { apply(it.key, it.longValue * sign) }
     }
@@ -157,26 +157,6 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
         }
 
         total += delta
-    }
-
-    private fun refreshReaders() {
-        getHeldEntity(TextDisplay::class.java, "readers")
-            ?.text(UnitFormat.READER.format(sourceCount).asComponent())
-    }
-
-    private fun refreshStatus() {
-        val text = if (contributions.isEmpty()) {
-            tr("receiver.status.unlinked")
-        } else {
-            tr("receiver.status.receiving")
-        }
-
-        getHeldEntity(TextDisplay::class.java, "status")?.text(text)
-    }
-
-    private fun refreshValue() {
-        getHeldEntity(TextDisplay::class.java, "value")
-            ?.text(UnitFormat.ITEMS.format(total).asComponent())
     }
 
     private fun notifyProbes() {
@@ -201,7 +181,7 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
         private val spillersType = RebarSerializers.SET.setTypeFrom(RebarSerializers.BLOCK_POSITION)
 
         @Suppress("unused")
-        @EventHandler
+        @EventHandler(priority = EventPriority.MONITOR)
         private fun onLoad(e: RebarBlockLoadEvent) {
             val receiver = e.rebarBlock as? Receiver ?: return
 
@@ -215,26 +195,19 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
         }
 
         @Suppress("unused")
-        @EventHandler
+        @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
         private fun onBreak(e: RebarBlockBreakEvent) {
             val receiver = e.rebarBlock as? Receiver ?: return
-
-            for (pos in receiver.contributions.keys.toList()) {
-                if (!pos.isChunkLoaded) continue
-
-                BlockStorage.getAs<Reader>(pos)?.onUnlinked(receiver)
+            val sources = buildSet {
+                addAll(receiver.contributions.keys)
+                addAll(receiver.probes)
+                addAll(receiver.spillers)
             }
 
-            for (pos in receiver.probes.toList()) {
+            for (pos in sources) {
                 if (!pos.isChunkLoaded) continue
 
-                BlockStorage.getAs<Probe>(pos)?.onUnlinked(receiver)
-            }
-
-            for (pos in receiver.spillers.toList()) {
-                if (!pos.isChunkLoaded) continue
-
-                BlockStorage.getAs<Spiller>(pos)?.onUnlinked(receiver)
+                (BlockStorage.get(pos) as? LinkSource)?.onUnlinked(receiver)
             }
         }
     }

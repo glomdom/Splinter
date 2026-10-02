@@ -2,12 +2,12 @@ package com.glomdom.splinter.content.machine
 
 import com.glomdom.splinter.content.machine.data.ReceiverLink
 import com.glomdom.splinter.content.machine.data.ReceiverLinked
+import com.glomdom.splinter.extensions.faceMarker
 import com.glomdom.splinter.extensions.plus
 import com.glomdom.splinter.interfaces.ItemKey
-import com.glomdom.splinter.interfaces.LinkSource
 import com.glomdom.splinter.interfaces.LinkTarget
-import com.glomdom.splinter.splinterKey
-import com.glomdom.splinter.utilities.label
+import com.glomdom.splinter.utilities.Labels
+import com.glomdom.splinter.utilities.placementFacing
 import com.glomdom.splinter.utilities.tr
 import io.github.pylonmc.rebar.Rebar
 import io.github.pylonmc.rebar.block.BlockStorage
@@ -16,9 +16,6 @@ import io.github.pylonmc.rebar.block.context.BlockCreateContext
 import io.github.pylonmc.rebar.block.interfaces.DirectionalRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.TickingRebarBlock
-import io.github.pylonmc.rebar.datatypes.RebarSerializers
-import io.github.pylonmc.rebar.entity.display.ItemDisplayBuilder
-import io.github.pylonmc.rebar.event.RebarBlockBreakEvent
 import io.github.pylonmc.rebar.event.RebarBlockLoadEvent
 import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import io.github.pylonmc.rebar.util.delayTicks
@@ -34,7 +31,6 @@ import org.bukkit.block.BlockFace
 import org.bukkit.block.Chest
 import org.bukkit.block.Container
 import org.bukkit.block.DoubleChest
-import org.bukkit.entity.TextDisplay
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -48,37 +44,26 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
 
-class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, TickingRebarBlock, ReceiverLinked, LinkSource {
+class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, TickingRebarBlock, ReceiverLinked {
     val readerFaceStack: ItemStackBuilder = ItemStackBuilder.of(Material.BLUE_CONCRETE)
         .addCustomModelDataString(key + ":readerFace")
 
     override val linkRange = 64
     override val link = ReceiverLink()
 
+    private val labels = Labels(this)
     private var lastSubject: Material? = null
-    private var lastTotal: Long? = null
+    private var total: Long? = null
 
     @Suppress("unused")
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
-        facing = if (ctx.player?.isSneaking == true) {
-            ctx.facing.oppositeFace
-        } else {
-            ctx.facing
-        }
+        facing = placementFacing(ctx)
 
         setTickInterval(10)
 
-        addEntity("readerFace", ItemDisplayBuilder().itemStack(readerFaceStack).transformation {
-            it.lookAlong(facing.oppositeFace)
-            it.translate(0.0, 0.0, -0.5)
-            it.scale(0.25, 0.25, 0.1)
-        }.build(block.location.toCenterLocation()))
+        addEntity("readerFace", faceMarker(readerFaceStack, facing))
+        labels.create("status", "subject", "value")
 
-        addEntity("status", label(block, 0.95))
-        addEntity("subject", label(block, 0.825))
-        addEntity("value", label(block, 0.7))
-
-        refreshStatus()
         refreshSubject()
     }
 
@@ -96,19 +81,18 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
     override fun onLinked(target: LinkTarget) {
         link.attach(target)
 
-        refreshStatus()
         sync()
     }
 
     override fun onUnlinked(target: LinkTarget) {
         link.detach()
 
-        refreshStatus()
+        render()
     }
 
     fun sync() {
         val counts = Object2LongOpenHashMap<ItemKey>()
-        var total = 0L
+        var sum = 0L
 
         val container = block.getRelative(facing).getState(false) as? Container
 
@@ -117,14 +101,14 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
                 if (stack == null || stack.isEmpty) continue
 
                 counts.addTo(ItemKey.of(stack), stack.amount.toLong())
-                total += stack.amount
+                sum += stack.amount
             }
         }
 
-        refreshValue(total.takeIf { container != null })
+        total = sum.takeIf { container != null }
+        render()
 
-        val target = link.receiver ?: return
-        target.update(block.position, counts)
+        link.receiver?.update(block.position, counts)
     }
 
     fun extract(key: ItemKey, amount: Int): ItemStack? {
@@ -152,34 +136,21 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
 
         lastSubject = subject.type
 
-        val text = if (subject.getState(false) is Container) {
+        sync()
+    }
+
+    private fun render() {
+        val subject = block.getRelative(facing)
+
+        labels["status"] = if (isLinked) tr("reader.status.transmitting") else tr("reader.status.unlinked")
+
+        labels["subject"] = if (subject.getState(false) is Container) {
             tr("reader.subject.item", "subject" to Component.translatable(subject.type.translationKey()))
         } else {
             tr("reader.subject.invalid")
         }
 
-        getHeldEntity(TextDisplay::class.java, "subject")?.text(text)
-
-        sync()
-    }
-
-    private fun refreshValue(total: Long?) {
-        if (total == lastTotal) return
-
-        lastTotal = total
-
-        getHeldEntity(TextDisplay::class.java, "value")
-            ?.text(total?.let { UnitFormat.ITEMS.format(it).asComponent() })
-    }
-
-    private fun refreshStatus() {
-        val text = if (link.receiver == null) {
-            tr("reader.status.unlinked")
-        } else {
-            tr("reader.status.transmitting")
-        }
-
-        getHeldEntity(TextDisplay::class.java, "status")?.text(text)
+        labels["value"] = total?.let { UnitFormat.ITEMS.format(it).asComponent() }
     }
 
     companion object : Listener {
@@ -210,7 +181,10 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
                     (holder.rightSide as? Chest)?.block?.let(::markSubject)
                 }
 
-                is BlockInventoryHolder -> markSubject(holder.block)
+                is BlockInventoryHolder -> {
+                    markSubject(holder.block)
+                }
+
                 else -> {}
             }
         }
@@ -258,7 +232,7 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
         private fun on(e: InventoryCloseEvent) = markInventory(e.inventory)
 
         @Suppress("unused")
-        @EventHandler
+        @EventHandler(priority = EventPriority.MONITOR)
         private fun onLoad(e: RebarBlockLoadEvent) {
             (e.rebarBlock as? Reader)?.sync()
         }
