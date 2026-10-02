@@ -39,6 +39,19 @@ item:
       <arrow> Outputs a constant value to every side
       <arrow> <insn>Shift right click</insn> to change the constant
 
+  boolean_comparer:
+    name: "Boolean Comparer"
+    lore: |-
+      <arrow> Compares A with B
+      <arrow> <insn>Shift right click</insn> to change the operation
+      <arrow> A is the input from the <aqua>Blue</aqua> port
+      <arrow> B is the input from the <red>Red</red> port
+
+  spiller:
+    name: "Spiller"
+    lore: |-
+      <arrow> Spills provided items into the attached inventory
+
 reader:
   status:
     unlinked: "Status: <yellow>Unlinked</yellow>"
@@ -65,10 +78,29 @@ constant:
   value: "Constant: <aqua>%value%</aqua>"
 
 boolean_comparer:
-  value:
-    a: "A: <aqua>%value%</aqua>"
-    b: "B: <aqua>%value%</aqua>"
-    output: "Output: <aqua>%value%</aqua>"
+  operation: "<aqua>A</aqua> <gold>%op%</gold> <aqua>B</aqua>"
+  values: "<aqua>%a%</aqua> <gold>%op%</gold> <aqua>%b%</aqua>"
+  output:
+    high: "Output: <green>1</green>"
+    low: "Output: <red>0</red>"
+
+spiller:
+  status:
+    unlinked: "Status: <red>Unlinked</red>"
+    no_filter: "Status: <red>No filter</red>"
+    invalid_target: "Status: <red>Invalid target</red>"
+    no_pattern: "Status: <yellow>No pattern</yellow>"
+    idle: "Status: <gray>Idle</gray>"
+    satisfied: "Status: <aqua>Satisfied</aqua>"
+    spilling: "Status: <green>Spilling</green>"
+    no_stock: "Status: <red>No stock</red>"
+    target_full: "Status: <yellow>Target full</yellow>"
+  filter:
+    item: "Filter: <aqua>%item%</aqua>"
+    none: "Filter: <red>None</red>"
+  keep: "Keep: <aqua>%keep%</aqua>"
+  keep_has: "Keep: <aqua>%keep%</aqua> | Has: <aqua>%has%</aqua>"
+  slots: "Slots: <gold>%slots%</gold>"
 
 messages:
   linker:

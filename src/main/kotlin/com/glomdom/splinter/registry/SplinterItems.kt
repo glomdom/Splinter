@@ -11,6 +11,7 @@ object SplinterItems : SplinterRegistry() {
     val REDSTONE_OUT by blockItem(Material.TARGET, SplinterPages.SPLINTER)
     val CONSTANT by blockItem(Material.GREEN_STAINED_GLASS, SplinterPages.SPLINTER)
     val BOOLEAN_COMPARER by blockItem(Material.ORANGE_STAINED_GLASS, SplinterPages.SPLINTER)
+    val SPILLER by blockItem(Material.YELLOW_STAINED_GLASS, SplinterPages.SPLINTER)
 
     val DATA_WIRE by blockItem(Material.STRUCTURE_VOID, Material.RED_CONCRETE, SplinterPages.SPLINTER)
 

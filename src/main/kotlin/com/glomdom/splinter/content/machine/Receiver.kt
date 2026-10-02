@@ -24,11 +24,13 @@ import org.bukkit.block.Block
 import org.bukkit.entity.TextDisplay
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
 
 class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
     private val contributions = HashMap<BlockPosition, Object2LongOpenHashMap<ItemKey>>()
     private var probes = mutableSetOf<BlockPosition>()
+    private var spillers = mutableSetOf<BlockPosition>()
     private val aggregate = Object2LongOpenHashMap<ItemKey>()
 
     var total = 0L
@@ -57,15 +59,17 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
         }
 
         pdc.get(probesKey, probesType)?.let { probes = it.toMutableSet() }
+        pdc.get(spillersKey, spillersType)?.let { spillers = it.toMutableSet() }
     }
 
     override fun write(pdc: PersistentDataContainer) {
         pdc.set(contributionsKey, contributionsType, contributions)
         pdc.set(probesKey, probesType, probes)
+        pdc.set(spillersKey, spillersType, spillers)
     }
 
     override fun hasSource(source: LinkSource) =
-        source.block.position.let { it in contributions || it in probes }
+        source.block.position.let { it in contributions || it in probes || it in spillers }
 
     override fun addSource(source: LinkSource) {
         when (source) {
@@ -76,6 +80,10 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
 
             is Probe -> {
                 probes += source.block.position
+            }
+
+            is Spiller -> {
+                spillers += source.block.position
             }
         }
 
@@ -93,6 +101,10 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
 
             is Probe -> {
                 probes -= source.block.position
+            }
+
+            is Spiller -> {
+                spillers -= source.block.position
             }
         }
 
@@ -118,6 +130,19 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
         refreshReaders()
         refreshStatus()
         refreshValue()
+    }
+
+    fun take(key: ItemKey, amount: Int): ItemStack? {
+        for ((pos, counts) in contributions) {
+            if (counts.getLong(key) <= 0) continue
+            if (!pos.isChunkLoaded) continue
+
+            val taken = BlockStorage.getAs<Reader>(pos)?.extract(key, amount) ?: continue
+
+            return taken
+        }
+
+        return null
     }
 
     private fun addAll(counts: Object2LongOpenHashMap<ItemKey>, sign: Long) {
@@ -172,6 +197,9 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
         private val probesKey = splinterKey("receiver_probes")
         private val probesType = RebarSerializers.SET.setTypeFrom(RebarSerializers.BLOCK_POSITION)
 
+        private val spillersKey = splinterKey("receiver_spillers")
+        private val spillersType = RebarSerializers.SET.setTypeFrom(RebarSerializers.BLOCK_POSITION)
+
         @Suppress("unused")
         @EventHandler
         private fun onLoad(e: RebarBlockLoadEvent) {
@@ -201,6 +229,12 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
                 if (!pos.isChunkLoaded) continue
 
                 BlockStorage.getAs<Probe>(pos)?.onUnlinked(receiver)
+            }
+
+            for (pos in receiver.spillers.toList()) {
+                if (!pos.isChunkLoaded) continue
+
+                BlockStorage.getAs<Spiller>(pos)?.onUnlinked(receiver)
             }
         }
     }

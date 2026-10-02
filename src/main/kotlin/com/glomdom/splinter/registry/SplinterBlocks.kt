@@ -6,6 +6,7 @@ import com.glomdom.splinter.content.machine.Probe
 import com.glomdom.splinter.content.machine.Reader
 import com.glomdom.splinter.content.machine.Receiver
 import com.glomdom.splinter.content.machine.RedstoneOut
+import com.glomdom.splinter.content.machine.Spiller
 import com.glomdom.splinter.content.machine.data.DataWire
 import org.bukkit.Material
 
@@ -15,6 +16,7 @@ object SplinterBlocks : SplinterRegistry() {
     val PROBE by block<Probe>(Material.RED_STAINED_GLASS)
     val CONSTANT by block<Constant>(Material.GREEN_STAINED_GLASS)
     val BOOLEAN_COMPARER by block<BooleanComparer>(Material.ORANGE_STAINED_GLASS)
+    val SPILLER by block<Spiller>(Material.YELLOW_STAINED_GLASS)
 
     val REDSTONE_OUT by block<RedstoneOut>(Material.TARGET)
 

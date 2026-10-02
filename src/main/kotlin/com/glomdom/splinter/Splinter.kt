@@ -5,6 +5,7 @@ import com.glomdom.splinter.content.machine.Probe
 import com.glomdom.splinter.content.machine.Reader
 import com.glomdom.splinter.content.machine.Receiver
 import com.glomdom.splinter.content.machine.RedstoneOut
+import com.glomdom.splinter.content.machine.Spiller
 import com.glomdom.splinter.content.machine.data.DataGraphListener
 import com.glomdom.splinter.content.machine.data.ReceiverLinkListener
 import com.glomdom.splinter.guide.SplinterHelpPages
@@ -35,6 +36,7 @@ object Splinter : JavaPlugin(), RebarAddon {
         pm.registerEvents(Probe.Companion, this)
         pm.registerEvents(RedstoneOut.Companion, this)
         pm.registerEvents(Constant.Companion, this)
+        pm.registerEvents(Spiller.Companion, this)
         pm.registerEvents(DataGraphListener, this)
         pm.registerEvents(ReceiverLinkListener, this)
     }
