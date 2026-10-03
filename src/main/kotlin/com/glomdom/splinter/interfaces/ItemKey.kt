@@ -20,7 +20,7 @@ sealed interface ItemKey {
         override fun stack(): ItemStack {
             val schema = RebarRegistry.ITEMS[NamespacedKey.fromString(id)!!] ?: error("failed to get rebar item")
 
-            return schema.getItemStack()
+            return schema.createNewItemStack()
         }
     }
 
