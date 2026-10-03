@@ -57,6 +57,13 @@ item:
     lore: |-
       <arrow> Emits a redstone signal equal to its input, from <aqua>0</aqua> to <aqua>15</aqua>
 
+  arithmetic:
+    name: "Arithmetic"
+    lore: |-
+      <arrow> Outputs the result of the arithmetic done on A and B
+      <arrow> A is the <blue>blue</blue> port, B is the <red>red</red> port
+      <arrow> <insn>Shift right click</insn> with an empty hand to change the operation
+
 filter:
   item: "<gray>Filter:</gray> <aqua>%item%</aqua>"
   none: "<gray>Filter:</gray> <red>None</red>"
@@ -103,6 +110,12 @@ boolean_comparer:
   output:
     high: "<gray>Output:</gray> <green>1</green>"
     low: "<gray>Output:</gray> <red>0</red>"
+
+arithmetic:
+  operation: "<blue>A</blue> <gold>%op%</gold> <red>B</red>"
+  values: "<aqua>%a%</aqua> <gold>%op%</gold> <aqua>%b%</aqua>"
+  output: "<gray>Output:</gray> <aqua>%value%</aqua>"
+  error: "<gray>Output:</gray> <red>Error</red>"
 
 gui:
   filter:

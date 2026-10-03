@@ -1,5 +1,6 @@
 package com.glomdom.splinter.registry
 
+import com.glomdom.splinter.content.machine.Arithmetic
 import com.glomdom.splinter.content.machine.BooleanComparer
 import com.glomdom.splinter.content.machine.Constant
 import com.glomdom.splinter.content.machine.Probe
@@ -17,6 +18,7 @@ object SplinterBlocks : SplinterRegistry() {
     val CONSTANT by block<Constant>(Material.GREEN_STAINED_GLASS)
     val BOOLEAN_COMPARER by block<BooleanComparer>(Material.ORANGE_STAINED_GLASS)
     val SPILLER by block<Spiller>(Material.YELLOW_STAINED_GLASS)
+    val ARITHMETIC by block<Arithmetic>(Material.MAGENTA_STAINED_GLASS)
 
     val REDSTONE_OUT by block<RedstoneOut>(Material.TARGET)
 

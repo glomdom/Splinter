@@ -12,6 +12,7 @@ object SplinterItems : SplinterRegistry() {
     val CONSTANT by blockItem(Material.GREEN_STAINED_GLASS, SplinterPages.SPLINTER)
     val BOOLEAN_COMPARER by blockItem(Material.ORANGE_STAINED_GLASS, SplinterPages.SPLINTER)
     val SPILLER by blockItem(Material.YELLOW_STAINED_GLASS, SplinterPages.SPLINTER)
+    val ARITHMETIC by blockItem(Material.MAGENTA_STAINED_GLASS, SplinterPages.SPLINTER)
 
     val DATA_WIRE by blockItem(Material.STRUCTURE_VOID, Material.RED_CONCRETE, SplinterPages.SPLINTER)
 
