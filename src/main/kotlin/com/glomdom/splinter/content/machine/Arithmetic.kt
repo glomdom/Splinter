@@ -28,12 +28,6 @@ import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.persistence.PersistentDataContainer
 
 class Arithmetic : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, DataEndpoint {
-    val inputAFaceStack: ItemStackBuilder = ItemStackBuilder.of(Material.BLUE_CONCRETE)
-        .addCustomModelDataString(key + ":inputAFace")
-
-    val inputBFaceStack: ItemStackBuilder = ItemStackBuilder.of(Material.RED_CONCRETE)
-        .addCustomModelDataString(key + ":inputBFace")
-
     override val dataPorts by lazy {
         val a = facing.left()
         val b = facing.right()
@@ -138,5 +132,11 @@ class Arithmetic : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, In
     companion object {
         private val operatorKey = splinterKey("arithmetic_operator")
         private val operatorType = RebarSerializers.ENUM.enumTypeFrom(Operator::class.java)
+
+        private val inputAFaceStack: ItemStackBuilder = ItemStackBuilder.of(Material.BLUE_CONCRETE)
+            .addCustomModelDataString("splinter:inputAFace")
+
+        private val inputBFaceStack: ItemStackBuilder = ItemStackBuilder.of(Material.RED_CONCRETE)
+            .addCustomModelDataString("splinter:inputBFace")
     }
 }

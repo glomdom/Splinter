@@ -45,9 +45,6 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
 
 class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, TickingRebarBlock, ReceiverLinked {
-    val readerFaceStack: ItemStackBuilder = ItemStackBuilder.of(Material.BLUE_CONCRETE)
-        .addCustomModelDataString(key + ":readerFace")
-
     override val linkRange = 64
     override val link = ReceiverLink()
 
@@ -161,6 +158,9 @@ class Reader : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, Tickin
 
         private val dirty = mutableSetOf<BlockPosition>()
         private var flushScheduled = false
+
+        private val readerFaceStack: ItemStackBuilder = ItemStackBuilder.of(Material.BLUE_CONCRETE)
+            .addCustomModelDataString("splinter:readerFace")
 
         fun markSubject(subject: Block) {
             for (face in faces) {
