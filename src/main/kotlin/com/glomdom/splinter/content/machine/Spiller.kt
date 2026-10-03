@@ -7,6 +7,7 @@ import com.glomdom.splinter.content.machine.data.ReceiverLink
 import com.glomdom.splinter.content.machine.data.ReceiverLinked
 import com.glomdom.splinter.extensions.addPortMarkers
 import com.glomdom.splinter.extensions.left
+import com.glomdom.splinter.extensions.right
 import com.glomdom.splinter.interfaces.ItemKey
 import com.glomdom.splinter.interfaces.LinkTarget
 import com.glomdom.splinter.splinterKey
@@ -36,11 +37,13 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
 
     override val dataPorts by lazy {
         val back = facing.oppositeFace
-        val side = facing.left()
+        val left = facing.left()
+        val right = facing.right()
 
         mapOf(
             back to DataPort(this, back, DataPort.Kind.INPUT),
-            side to DataPort(this, side, DataPort.Kind.OUTPUT),
+            left to DataPort(this, left, DataPort.Kind.OUTPUT),
+            right to DataPort(this, right, DataPort.Kind.OUTPUT),
         )
     }
 
@@ -50,12 +53,16 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
     private val ready
         get() = dataPorts.getValue(facing.left())
 
+    private val shortPort
+        get() = dataPorts.getValue(facing.right())
+
     private val filter = FilterSlot { onFilterChanged() }
     private val labels = Labels(this)
 
     private var claims = mutableSetOf<Int>()
     private var status = Status.NO_FILTER
     private var has: Int? = null // null = target has no notion of the input
+    private var short = 0
 
     @Suppress("unused")
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
@@ -100,8 +107,11 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
 
     override fun onInput(port: DataPort) = render()
     override fun tick() {
+        short = 0
         status = work()
+
         ready.emit(if (status == Status.SATISFIED) 1 else 0)
+        shortPort.emit(short.toLong())
 
         render()
     }
@@ -170,7 +180,13 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
             ?: return Status.TARGET_FULL
 
         // todo: make this tierable/configurable as well
-        val taken = takeFromNetwork(key, 1) ?: return Status.NO_STOCK
+        val taken = takeFromNetwork(key, 1)
+        if (taken == null) {
+            short = below.sumOf { keep - amountAt(it) }
+
+            return Status.NO_STOCK
+        }
+
         val existing = inv.getItem(slot)
 
         if (existing == null || existing.isEmpty) {
