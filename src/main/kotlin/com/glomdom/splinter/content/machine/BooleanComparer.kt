@@ -119,7 +119,7 @@ class BooleanComparer : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBloc
         labels["output"] = if (result) tr("boolean_comparer.output.high") else tr("boolean_comparer.output.low")
     }
 
-    enum class Operator(val symbol: String, val test: (Long, Long) -> Boolean) {
+    private enum class Operator(val symbol: String, val test: (Long, Long) -> Boolean) {
         GREATER(">", { a, b -> a > b }),
         GREATER_EQUAL(">=", { a, b -> a >= b }),
         LESS("<", { a, b -> a < b }),
