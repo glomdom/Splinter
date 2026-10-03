@@ -148,8 +148,8 @@ guide:
 
 unit:
   reader:
-    singular: "reader"
-    plural: "readers"
+    one: "reader"
+    other: "readers"
   redstone_strength:
-    singular: "strength"
-    plural: "strength"
+    one: "strength"
+    other: "strength"

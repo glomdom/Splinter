@@ -12,4 +12,4 @@ val UnitFormat.Companion.READER: UnitFormat
     get() = UnitFormat(Splinter, "reader", defaultStyle = Style.style(TextColor.color(0xb2e01a)))
 
 val UnitFormat.Companion.REDSTONE_STRENGTH: UnitFormat
-    get() = UnitFormat(Splinter, "reader", defaultStyle = Style.style(NamedTextColor.RED))
+    get() = UnitFormat(Splinter, "redstone_strength", defaultStyle = Style.style(NamedTextColor.RED))
