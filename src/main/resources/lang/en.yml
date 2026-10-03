@@ -30,8 +30,10 @@ item:
     name: "Spiller"
     lore: |-
       <arrow> Keeps the inventory it faces stocked with the filtered item
-      <arrow> Input: how many to <aqua>keep</aqua>
-      <arrow> Output: <aqua>1</aqua> once the target is stocked
+      <arrow> <blue>Blue</blue> face points at the target inventory
+      <arrow> <green>Green</green> port (back): how many to <aqua>keep</aqua>
+      <arrow> <gold>Orange</gold> port (left): <aqua>1</aqua> once the target is stocked
+      <arrow> <red>Red</red> port (right): how many items the network is <aqua>short</aqua>
 
   data_wire:
     name: "Data Wire"

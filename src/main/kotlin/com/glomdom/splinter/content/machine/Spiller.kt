@@ -6,6 +6,7 @@ import com.glomdom.splinter.content.machine.data.FilterSlot
 import com.glomdom.splinter.content.machine.data.ReceiverLink
 import com.glomdom.splinter.content.machine.data.ReceiverLinked
 import com.glomdom.splinter.extensions.addPortMarkers
+import com.glomdom.splinter.extensions.faceMarker
 import com.glomdom.splinter.extensions.left
 import com.glomdom.splinter.extensions.right
 import com.glomdom.splinter.interfaces.ItemKey
@@ -21,7 +22,9 @@ import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.GuiRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.TickingRebarBlock
 import io.github.pylonmc.rebar.datatypes.RebarSerializers
+import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import net.kyori.adventure.text.Component
+import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.Crafter
 import org.bukkit.event.Listener
@@ -70,7 +73,14 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
 
         setTickInterval(10) // todo: make this tiered/configurable
 
-        addPortMarkers()
+        addEntity("targetFace", faceMarker(targetMarker, facing))
+        addPortMarkers(
+            mapOf(
+                facing.oppositeFace to keepMarker,
+                facing.right() to shortMarker,
+            )
+        )
+
         labels.create("status", "filter", "amounts", "slots")
 
         render()
@@ -240,5 +250,14 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
     companion object : Listener {
         private val claimsKey = splinterKey("spiller_claims")
         private val claimsType = RebarSerializers.SET.setTypeFrom(RebarSerializers.INTEGER)
+
+        private val targetMarker = ItemStackBuilder.of(Material.BLUE_CONCRETE)
+            .addCustomModelDataString("splinter:spiller_target")
+
+        private val keepMarker = ItemStackBuilder.of(Material.LIME_CONCRETE)
+            .addCustomModelDataString("splinter:spiller_keep")
+
+        private val shortMarker = ItemStackBuilder.of(Material.RED_CONCRETE)
+            .addCustomModelDataString("splinter:spiller_short")
     }
 }
