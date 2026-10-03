@@ -174,6 +174,8 @@ class DataWire : RebarBlock, BlockBreakRebarBlockHandler, EntityHolderRebarBlock
             var from = face.oppositeFace
 
             repeat(MAX_LINE_LENGTH) {
+                if (!pos.world.isChunkLoaded(pos.x shr 4, pos.z shr 4)) return null
+
                 when (val node = BlockStorage.get(pos)) {
                     is DataWire -> {
                         if (from !in node.connectedFaces) return null
