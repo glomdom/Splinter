@@ -9,7 +9,7 @@ import io.github.pylonmc.rebar.guide.pages.base.SimpleStaticGuidePage
 object SplinterHelpPages {
     val HELP = SimpleStaticGuidePage(splinterKey("help"))
 
-    init {
+    fun registerAll() {
         RebarGuide.helpPage.addButton(AddonPageButton(Splinter, HELP))
     }
 }

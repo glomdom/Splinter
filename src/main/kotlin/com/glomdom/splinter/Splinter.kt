@@ -26,7 +26,7 @@ object Splinter : JavaPlugin(), RebarAddon {
 
         SplinterItems.registerAll()
         SplinterBlocks.registerAll()
-        SplinterHelpPages
+        SplinterHelpPages.registerAll()
         RebarGuide.rootPage.addPage(material, SplinterPages.SPLINTER)
         SplinterRegistry.validateClaims()
 
