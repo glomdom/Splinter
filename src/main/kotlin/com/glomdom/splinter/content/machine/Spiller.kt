@@ -144,10 +144,6 @@ class Spiller : RebarBlock, DirectionalRebarBlock, HologramHolder, GuiRebarBlock
         return tickLogistic(target, key, keep)
     }
 
-    /**
-     * Stocks any machine or container through its input logistic groups,
-     * keeping [keep] of the item in total across those slots.
-     */
     private fun tickLogistic(target: Block, key: ItemKey, keep: Int): Status {
         // fixme: allow selection of logistic group to use instead of every input
 
@@ -169,7 +165,6 @@ class Spiller : RebarBlock, DirectionalRebarBlock, HologramHolder, GuiRebarBlock
         if (keep == 0) return Status.IDLE
         if (current >= keep) return Status.SATISFIED
 
-        // top up a partial stack first, then start a new one in an empty slot
         val slot = (slots.filter(::matches) + slots.filter(::isEmpty)).firstOrNull {
             val next = it.getAmount() + 1
 
@@ -191,7 +186,6 @@ class Spiller : RebarBlock, DirectionalRebarBlock, HologramHolder, GuiRebarBlock
         return Status.SPILLING
     }
 
-    /** Distinct slots of every input group on [target] that accepts [item]. */
     private fun inputSlots(target: Block, item: ItemStack): List<LogisticSlot> {
         val groups = (BlockStorage.get(target) as? LogisticRebarBlock)?.getLogisticGroups()
             ?: LogisticGroup.getVanillaLogisticSlots(target)

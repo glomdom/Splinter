@@ -16,8 +16,13 @@ import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
 import io.github.pylonmc.rebar.block.context.BlockCreateContext
 import io.github.pylonmc.rebar.block.interfaces.DirectionalRebarBlock
+import io.github.pylonmc.rebar.block.interfaces.LogisticRebarBlock
+import io.github.pylonmc.rebar.block.interfaces.NoVanillaInventoryRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.TickingRebarBlock
 import io.github.pylonmc.rebar.event.RebarBlockLoadEvent
+import io.github.pylonmc.rebar.logistics.LogisticGroupType
+import io.github.pylonmc.rebar.logistics.slot.LogisticSlot
+import io.github.pylonmc.rebar.logistics.slot.VanillaInventoryLogisticSlot
 import io.github.pylonmc.rebar.util.IMMEDIATE_FACES
 import io.github.pylonmc.rebar.util.delayTicks
 import io.github.pylonmc.rebar.util.position.BlockPosition
@@ -74,27 +79,36 @@ class Reader : RebarBlock, DirectionalRebarBlock, HologramHolder, TickingRebarBl
     }
 
     override fun postLoad() = hologram.restore()
-    override fun tick() = refreshSubject()
     override fun onLinkChanged() = sync()
 
-    /** Recounts the faced container and pushes the counts to the receiver. */
+    override fun tick() {
+        if (BlockStorage.get(block.getRelative(facing)) is LogisticRebarBlock) {
+            sync()
+        } else {
+            refreshSubject()
+        }
+    }
+
     fun sync() {
         val counts = Object2LongOpenHashMap<ItemKey>()
-        val container = block.getRelative(facing).getState(false) as? Container
+        val slots = slots()
 
-        snapshot = container?.inventory?.let { inv ->
+        snapshot = slots?.let {
             var sum = 0L
             var used = 0
 
-            for (stack in inv) {
+            for (slot in it) {
+                val stack = slot.getItemStack()
                 if (stack == null || stack.isEmpty) continue
 
-                counts.addTo(ItemKey.of(stack), stack.amount.toLong())
-                sum += stack.amount
+                val amount = slot.getAmount()
+
+                counts.addTo(ItemKey.of(stack), amount)
+                sum += amount
                 used++
             }
 
-            Snapshot(sum, counts.size, used, inv.size)
+            Snapshot(sum, counts.size, used, it.size)
         }
 
         render()
@@ -103,22 +117,46 @@ class Reader : RebarBlock, DirectionalRebarBlock, HologramHolder, TickingRebarBl
     }
 
     fun extract(key: ItemKey, amount: Int): ItemStack? {
-        val inv = (block.getRelative(facing).getState(false) as? Container)?.inventory ?: return null
+        for (slot in slots() ?: return null) {
+            val stack = slot.getItemStack()
+            if (stack == null || stack.isEmpty || ItemKey.of(stack) != key) continue
 
-        for (slot in 0 until inv.size) {
-            val stack = inv.getItem(slot) ?: continue
-            if (stack.isEmpty || ItemKey.of(stack) != key) continue
+            val has = slot.getAmount()
+            val n = minOf(amount.toLong(), has)
+            val rest = has - n
 
-            val n = minOf(amount, stack.amount)
-            val taken = stack.clone().apply { this.amount = n }
+            if (rest == 0L) {
+                if (!slot.canSet(null, 0)) continue
+            } else {
+                if (!slot.canSet(stack, rest)) continue
+            }
 
-            inv.setItem(slot, if (stack.amount == n) null else stack.clone().apply { this.amount -= n })
+            val taken = stack.asQuantity(n.toInt())
+
+            if (rest == 0L) slot.set(null, 0) else slot.set(stack.clone(), rest)
             sync()
 
             return taken
         }
 
         return null
+    }
+
+    private fun slots(): List<LogisticSlot>? {
+        val subject = block.getRelative(facing)
+
+        when (val rebar = BlockStorage.get(subject)) {
+            is LogisticRebarBlock -> return rebar.getLogisticGroups().values
+                .filter { it.slotType != LogisticGroupType.INPUT }
+                .flatMap { it.slots }
+                .distinct()
+
+            is NoVanillaInventoryRebarBlock -> return null
+        }
+
+        val inv = (subject.getState(false) as? Container)?.inventory ?: return null
+
+        return (0 until inv.size).map { VanillaInventoryLogisticSlot(subject, inv, it) }
     }
 
     private fun refreshSubject() {

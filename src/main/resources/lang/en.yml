@@ -11,7 +11,9 @@ item:
   reader:
     name: "Reader"
     lore: |-
-      <arrow> Reports the contents of the inventory it faces
+      <arrow> Multi-functional: <aqua>reads</aqua> and <aqua>takes</aqua>
+      <arrow> Reports the inventory or machine outputs it faces to its receiver
+      <arrow> Spillers on the network take items out through it
       <arrow> Must be linked to a receiver
 
   receiver:
