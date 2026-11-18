@@ -5,7 +5,6 @@ import com.glomdom.splinter.util.tr
 import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import io.github.pylonmc.rebar.util.gui.GuiItems
 import io.papermc.paper.datacomponent.DataComponentTypes
-import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -35,9 +34,6 @@ class FilterSlot(private val onChange: () -> Unit) {
             .addIngredient('F', SlotItem().also { item = it })
             .addIngredient('#', GuiItems.background())
             .build()
-
-    fun label(): Component =
-        key?.let { tr("filter.item", "item" to it.name) } ?: tr("filter.none")
 
     private fun set(new: ItemKey?) {
         if (new == key) return

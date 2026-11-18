@@ -2,7 +2,11 @@ package com.glomdom.splinter.content.machine
 
 import com.glomdom.splinter.data.DataEndpoint
 import com.glomdom.splinter.data.DataPort
-import com.glomdom.splinter.util.Labels
+import com.glomdom.splinter.hologram.Accent
+import com.glomdom.splinter.hologram.Fmt
+import com.glomdom.splinter.hologram.Hologram
+import com.glomdom.splinter.hologram.HologramHolder
+import com.glomdom.splinter.hologram.Tone
 import com.glomdom.splinter.util.Markers
 import com.glomdom.splinter.util.addPortMarkers
 import com.glomdom.splinter.util.left
@@ -12,10 +16,11 @@ import com.glomdom.splinter.util.tr
 import io.github.pylonmc.rebar.block.RebarBlock
 import io.github.pylonmc.rebar.block.context.BlockCreateContext
 import io.github.pylonmc.rebar.block.interfaces.DirectionalRebarBlock
-import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.InteractRebarBlockHandler
 import io.github.pylonmc.rebar.datatypes.RebarSerializers
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextColor
 import org.bukkit.NamespacedKey
 import org.bukkit.Sound
 import org.bukkit.block.Block
@@ -33,22 +38,18 @@ interface BinaryOperator {
 }
 
 /**
- * Base for horizontal blocks that combine two inputs into one output:
+ * Base for horizontal blocks that combine two inputs into one output.
  *
- * - input **A** on the left (blue marker), input **B** on the right (red marker)
- * - output in front, emitting `operator(A, B)` (or `0` if undefined)
- * - shift + right-click with an empty hand cycles through the operators
- *
- * Subclasses only declare their operator enum (via [Operators]) and how to render the result.
- * Lang keys used: `<langKey>.operation`, `<langKey>.values`, plus whatever [outputLabel] returns.
+ * Subclasses must declare their operator enum (via [Operators]) and how to show the result.
+ * Language keys that will be used: `<langKey>.operator.<operator name in lowercase>`.
  */
-abstract class BinaryOperatorBlock<Op> : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock,
+abstract class BinaryOperatorBlock<Op> : RebarBlock, DirectionalRebarBlock, HologramHolder,
     InteractRebarBlockHandler, DataEndpoint where Op : Enum<Op>, Op : BinaryOperator {
 
-    /** Static description of a subclass's operator set. Keep one instance in the subclass's companion. */
     class Operators<Op>(
         val langKey: String,
         val pdcKey: NamespacedKey,
+        val accent: TextColor,
         type: Class<Op>,
     ) where Op : Enum<Op>, Op : BinaryOperator {
         val all: List<Op> = type.enumConstants.toList()
@@ -67,8 +68,8 @@ abstract class BinaryOperatorBlock<Op> : RebarBlock, DirectionalRebarBlock, Enti
     private val inputB get() = dataPorts.getValue(facing.right())
     private val output get() = dataPorts.getValue(facing)
 
-    private val labels = Labels(this)
     private val operators: Operators<Op>
+    final override val hologram: Hologram<BinaryOperatorBlock<Op>>
 
     protected var operator: Op
         private set
@@ -76,11 +77,12 @@ abstract class BinaryOperatorBlock<Op> : RebarBlock, DirectionalRebarBlock, Enti
     constructor(block: Block, ctx: BlockCreateContext, operators: Operators<Op>) : super(block, ctx) {
         this.operators = operators
         this.operator = operators.all.first()
+        this.hologram = Hologram(this, operators.accent)
 
         facing = placementFacing(ctx, horizontal = true)
 
         addPortMarkers(mapOf(facing.left() to Markers.INPUT_A, facing.right() to Markers.INPUT_B))
-        labels.create("operation", "values", "output")
+        hologram.spawn()
 
         evaluate()
     }
@@ -88,17 +90,26 @@ abstract class BinaryOperatorBlock<Op> : RebarBlock, DirectionalRebarBlock, Enti
     constructor(block: Block, pdc: PersistentDataContainer, operators: Operators<Op>) : super(block, pdc) {
         this.operators = operators
         this.operator = pdc.get(operators.pdcKey, operators.pdcType) ?: operators.all.first()
+        this.hologram = Hologram(this, operators.accent)
     }
 
-    /** Label shown on the bottom line. [result] is `null` when the operator's result is undefined. */
-    protected abstract fun outputLabel(result: Long?): Component
+    protected abstract fun resultText(result: Long?): Component
+    protected abstract fun resultStatus(result: Long?): Pair<Tone, String>
+
+    protected open val resultArrow: String
+        get() = "="
 
     override fun write(pdc: PersistentDataContainer) {
         pdc.set(operators.pdcKey, operators.pdcType, operator)
     }
 
-    override fun postLoad() = evaluate()
+    override fun postLoad() {
+        hologram.restore()
+        evaluate()
+    }
+
     override fun onInput(port: DataPort) = evaluate()
+    override fun onWiringChanged() = evaluate()
 
     override fun onInteractedWith(event: PlayerInteractEvent, priority: EventPriority) {
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
@@ -124,16 +135,31 @@ abstract class BinaryOperatorBlock<Op> : RebarBlock, DirectionalRebarBlock, Enti
         render(result)
     }
 
-    private fun render(result: Long?) {
-        val op = Component.text(operator.symbol)
+    private fun render(result: Long?) = hologram.render {
+        val missing = listOf(inputA, inputB).count { !it.isConnected }
+        val (tone, status) = if (missing > 0) Tone.WARN to "missing_input" else resultStatus(result)
 
-        labels["operation"] = tr("${operators.langKey}.operation", "op" to op)
-        labels["values"] = tr(
-            "${operators.langKey}.values",
-            "a" to Component.text(inputA.value),
-            "op" to op,
-            "b" to Component.text(inputB.value),
+        status(tone, status)
+
+        line(
+            Component.text()
+                .append(Fmt.number(inputA.value, Accent.INPUT_A))
+                .append(Component.text(" ${operator.symbol} ", NamedTextColor.GOLD))
+                .append(Fmt.number(inputB.value, Accent.INPUT_B))
+                .append(Component.text(" $resultArrow ", Fmt.MUTED))
+                .append(resultText(result))
+                .build()
         )
-        labels["output"] = outputLabel(result)
+
+        row(
+            "mode",
+            Component.text()
+                .append(tr("${operators.langKey}.operator.${operator.name.lowercase()}").color(NamedTextColor.GOLD))
+                .append(Component.text(" (${operator.ordinal + 1}/${operators.all.size})", Fmt.MUTED))
+                .build()
+        )
+
+        row("wired", Fmt.ratio(connectedPorts.toLong(), dataPorts.size.toLong()))
+        line(tr("hologram.hint.cycle"))
     }
 }

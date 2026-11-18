@@ -29,9 +29,9 @@ item:
   spiller:
     name: "Spiller"
     lore: |-
-      <arrow> Keeps the inventory it faces stocked with the filtered item
-      <arrow> <blue>Blue</blue> face points at the target inventory
-      <arrow> <green>Green</green> port (back): how many to <aqua>keep</aqua>
+      <arrow> Keeps the machine or inventory it faces stocked with the filtered item
+      <arrow> <blue>Blue</blue> face points at the target
+      <arrow> <green>Green</green> port (back): how many to <aqua>keep</aqua> (per slot in crafters, in total elsewhere)
       <arrow> <gold>Orange</gold> port (left): <aqua>1</aqua> once the target is stocked
       <arrow> <red>Red</red> port (right): how many items the network is <aqua>short</aqua>
 
@@ -66,58 +66,84 @@ item:
       <arrow> A is the <blue>blue</blue> port, B is the <red>red</red> port
       <arrow> <insn>Shift right click</insn> with an empty hand to change the operation
 
-filter:
-  item: "<gray>Filter:</gray> <aqua>%item%</aqua>"
-  none: "<gray>Filter:</gray> <red>None</red>"
+hologram:
+  row: "<gray>%label%:</gray> %value%"
+  ratio: "%a% <dark_gray>/</dark_gray> %b%"
+  items: "%count% <gray>items</gray>   %types% <gray>types</gray>"
+  stack: "%count% <dark_gray>×</dark_gray> <white>%item%</white>"
+  per_slot: "%count% <gray>per slot</gray>"
+  total: "%count% <gray>in total</gray>"
+  none: "<red>None</red>"
+  not_wired: "<dark_gray>Not wired</dark_gray>"
+  undefined: "<red>undefined</red>"
+  clamped: "<yellow>(clamped)</yellow>"
+  bool:
+    "true": "<green>True</green> <dark_gray>(1)</dark_gray>"
+    "false": "<red>False</red> <dark_gray>(0)</dark_gray>"
+  hint:
+    cycle: "<dark_gray>Shift + right click to change mode</dark_gray>"
+    edit: "<dark_gray>Shift + right click to edit</dark_gray>"
 
-reader:
+  label:
+    reading: "Reading"
+    contents: "Contents"
+    slots: "Slots"
+    receiver: "Receiver"
+    readers: "Readers"
+    consumers: "Probes & Spillers"
+    stored: "Stored"
+    filter: "Filter"
+    count: "In network"
+    wired: "Wired"
+    value: "Value"
+    mode: "Mode"
+    input: "Input"
+    strength: "Strength"
+    keep: "Keep"
+    stocked: "Stocked"
+    short: "Short by"
+
   status:
-    unlinked: "<gray>Status:</gray> <yellow>Unlinked</yellow>"
-    transmitting: "<gray>Status:</gray> <green>Transmitting</green>"
-  subject:
-    item: "<gray>Reading:</gray> <aqua>%subject%</aqua>"
-    invalid: "<gray>Reading:</gray> <red>Nothing</red>"
-
-receiver:
-  status:
-    unlinked: "<gray>Status:</gray> <yellow>No readers</yellow>"
-    receiving: "<gray>Status:</gray> <green>Receiving</green>"
-
-probe:
-  status:
-    unlinked: "<gray>Status:</gray> <yellow>Unlinked</yellow>"
-    receiving: "<gray>Status:</gray> <green>Receiving</green>"
-
-spiller:
-  status:
-    unlinked: "<gray>Status:</gray> <yellow>Unlinked</yellow>"
-    no_filter: "<gray>Status:</gray> <yellow>No filter</yellow>"
-    no_pattern: "<gray>Status:</gray> <yellow>No pattern</yellow>"
-    idle: "<gray>Status:</gray> <dark_gray>Idle</dark_gray>"
-    spilling: "<gray>Status:</gray> <green>Spilling</green>"
-    satisfied: "<gray>Status:</gray> <aqua>Satisfied</aqua>"
-    no_stock: "<gray>Status:</gray> <red>No stock</red>"
-    target_full: "<gray>Status:</gray> <red>Target full</red>"
-    invalid_target: "<gray>Status:</gray> <red>Invalid target</red>"
-  keep: "<gray>Keep:</gray> <aqua>%keep%</aqua>"
-  keep_has: "<gray>Keep:</gray> <aqua>%keep%</aqua> <dark_gray>|</dark_gray> <gray>Has:</gray> <aqua>%has%</aqua>"
-  slots: "<gray>Slots:</gray> <gold>%slots%</gold>"
-
-constant:
-  value: "<gray>Value:</gray> <aqua>%value%</aqua>"
+    unlinked: "Unlinked"
+    not_wired: "Not wired"
+    missing_input: "Missing input"
+    receiver_unloaded: "Receiver unloaded"
+    transmitting: "Transmitting"
+    no_inventory: "No inventory"
+    receiving: "Receiving"
+    no_readers: "No readers"
+    measuring: "Measuring"
+    no_filter: "No filter"
+    outputting: "Outputting"
+    computing: "Computing"
+    division_by_zero: "Division by zero"
+    high: "High"
+    low: "Low"
+    powered: "Powered"
+    "off": "Off"
+    no_pattern: "No pattern"
+    idle: "Idle"
+    spilling: "Spilling"
+    satisfied: "Satisfied"
+    no_stock: "No stock"
+    target_full: "Target full"
+    invalid_target: "Invalid target"
 
 boolean_comparer:
-  operation: "<blue>A</blue> <gold>%op%</gold> <red>B</red>"
-  values: "<aqua>%a%</aqua> <gold>%op%</gold> <aqua>%b%</aqua>"
-  output:
-    high: "<gray>Output:</gray> <green>1</green>"
-    low: "<gray>Output:</gray> <red>0</red>"
+  operator:
+    greater: "Greater than"
+    greater_equal: "At least"
+    less: "Less than"
+    less_equal: "At most"
+    equal: "Equal"
+    not_equal: "Not equal"
 
 arithmetic:
-  operation: "<blue>A</blue> <gold>%op%</gold> <red>B</red>"
-  values: "<aqua>%a%</aqua> <gold>%op%</gold> <aqua>%b%</aqua>"
-  output: "<gray>Output:</gray> <aqua>%value%</aqua>"
-  error: "<gray>Output:</gray> <red>Error</red>"
+  operator:
+    addition: "Addition"
+    subtraction: "Subtraction"
+    multiplication: "Multiplication"
+    integer_division: "Division"
 
 gui:
   filter:
@@ -159,11 +185,3 @@ guide:
   page:
     help: "Splinter Help"
     splinter: "Splinter"
-
-unit:
-  reader:
-    one: "reader"
-    other: "readers"
-  redstone_strength:
-    one: "strength"
-    other: "strength"

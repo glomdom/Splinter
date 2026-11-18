@@ -2,14 +2,17 @@ package com.glomdom.splinter.content.machine
 
 import com.glomdom.splinter.data.DataEndpoint
 import com.glomdom.splinter.data.DataPort
+import com.glomdom.splinter.hologram.Accent
+import com.glomdom.splinter.hologram.Fmt
+import com.glomdom.splinter.hologram.Hologram
+import com.glomdom.splinter.hologram.HologramHolder
+import com.glomdom.splinter.hologram.Tone
 import com.glomdom.splinter.splinterKey
-import com.glomdom.splinter.util.Labels
 import com.glomdom.splinter.util.addPortMarkers
 import com.glomdom.splinter.util.tr
 import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
 import io.github.pylonmc.rebar.block.context.BlockCreateContext
-import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.InteractRebarBlockHandler
 import io.github.pylonmc.rebar.datatypes.RebarSerializers
 import io.papermc.paper.dialog.Dialog
@@ -18,7 +21,6 @@ import io.papermc.paper.registry.data.dialog.DialogBase
 import io.papermc.paper.registry.data.dialog.action.DialogAction
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.block.Block
@@ -30,20 +32,19 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.persistence.PersistentDataContainer
 
-/** Outputs a fixed number on every side. Shift + right-click opens a dialog to change it. */
-class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, DataEndpoint {
+class Constant : RebarBlock, HologramHolder, InteractRebarBlockHandler, DataEndpoint {
     private var constant = 0L
 
     override val dataPorts: Map<BlockFace, DataPort> =
         BlockFace.entries
-            .filter { it.isCartesian }
+            .filter { it.isCartesian && it != BlockFace.UP }
             .associateWith { DataPort(this, it, DataPort.Kind.OUTPUT) }
 
-    private val labels = Labels(this)
+    override val hologram = Hologram(this, Accent.CONSTANT)
 
     @Suppress("unused")
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
-        labels.create("constant")
+        hologram.spawn()
         addPortMarkers()
 
         refreshConstant()
@@ -58,7 +59,12 @@ class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, 
         pdc.set(constantKey, RebarSerializers.LONG, constant)
     }
 
-    override fun postLoad() = refreshConstant()
+    override fun postLoad() {
+        hologram.restore()
+        refreshConstant()
+    }
+
+    override fun onWiringChanged() = render()
 
     override fun onInteractedWith(event: PlayerInteractEvent, priority: EventPriority) {
         if (event.hand != EquipmentSlot.HAND) return
@@ -81,7 +87,6 @@ class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, 
             .action(
                 DialogAction.customClick(
                     { response, _ ->
-                        // the block may have been broken while the dialog was open
                         if (BlockStorage.get(block) !== this) return@customClick
 
                         val parsed = response.getText("value")?.trim()?.toLongOrNull()
@@ -117,7 +122,15 @@ class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, 
     private fun refreshConstant() {
         dataPorts.values.forEach { it.emit(constant) }
 
-        labels["constant"] = tr("constant.value", "value" to Component.text(constant))
+        render()
+    }
+
+    private fun render() = hologram.render {
+        if (connectedPorts > 0) status(Tone.GOOD, "outputting") else status(Tone.IDLE, "not_wired")
+
+        row("value", Fmt.number(constant))
+        row("wired", Fmt.ratio(connectedPorts.toLong(), dataPorts.size.toLong()))
+        line(tr("hologram.hint.edit"))
     }
 
     companion object {

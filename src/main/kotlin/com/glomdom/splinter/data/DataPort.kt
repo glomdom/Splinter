@@ -2,10 +2,6 @@ package com.glomdom.splinter.data
 
 import org.bukkit.block.BlockFace
 
-/**
- * One side of a [DataEndpoint]. An OUTPUT port [emit]s values to its [peer] INPUT port, which stores
- * the value and notifies its owner via [DataEndpoint.onInput]. Unlinked inputs read `0`.
- */
 class DataPort(val owner: DataEndpoint, val face: BlockFace, val kind: Kind) {
     enum class Kind { INPUT, OUTPUT }
 
@@ -13,6 +9,9 @@ class DataPort(val owner: DataEndpoint, val face: BlockFace, val kind: Kind) {
         private set
 
     var peer: DataPort? = null
+
+    val isConnected: Boolean
+        get() = peer != null
 
     fun emit(v: Long) {
         if (v == value) return
@@ -39,6 +38,9 @@ class DataPort(val owner: DataEndpoint, val face: BlockFace, val kind: Kind) {
         val input = if (kind == Kind.INPUT) this else other
 
         input.receive(output.value)
+
+        owner.onWiringChanged()
+        other.owner.onWiringChanged()
     }
 
     fun unlink() {
@@ -49,5 +51,8 @@ class DataPort(val owner: DataEndpoint, val face: BlockFace, val kind: Kind) {
 
         val input = if (kind == Kind.INPUT) this else other
         input.receive(0)
+
+        owner.onWiringChanged()
+        other.owner.onWiringChanged()
     }
 }

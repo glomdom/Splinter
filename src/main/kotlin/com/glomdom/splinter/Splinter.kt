@@ -5,6 +5,7 @@ import com.glomdom.splinter.content.machine.Receiver
 import com.glomdom.splinter.content.machine.RedstoneOut
 import com.glomdom.splinter.data.DataGraphListener
 import com.glomdom.splinter.guide.SplinterPages
+import com.glomdom.splinter.hologram.HologramListener
 import com.glomdom.splinter.link.ReceiverLinkListener
 import com.glomdom.splinter.registry.SplinterBlocks
 import com.glomdom.splinter.registry.SplinterItems
@@ -34,6 +35,7 @@ object Splinter : JavaPlugin(), RebarAddon {
             RedstoneOut.Companion,
             DataGraphListener,
             ReceiverLinkListener,
+            HologramListener,
         ).forEach { server.pluginManager.registerEvents(it, this) }
     }
 }

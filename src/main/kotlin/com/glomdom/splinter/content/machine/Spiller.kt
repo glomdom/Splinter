@@ -2,12 +2,16 @@ package com.glomdom.splinter.content.machine
 
 import com.glomdom.splinter.data.DataEndpoint
 import com.glomdom.splinter.data.DataPort
+import com.glomdom.splinter.hologram.Accent
+import com.glomdom.splinter.hologram.Fmt
+import com.glomdom.splinter.hologram.Hologram
+import com.glomdom.splinter.hologram.HologramHolder
+import com.glomdom.splinter.hologram.Tone
 import com.glomdom.splinter.item.FilterSlot
+import com.glomdom.splinter.item.ItemKey
 import com.glomdom.splinter.link.ReceiverLink
 import com.glomdom.splinter.link.ReceiverLinked
-import com.glomdom.splinter.item.ItemKey
 import com.glomdom.splinter.splinterKey
-import com.glomdom.splinter.util.Labels
 import com.glomdom.splinter.util.Markers
 import com.glomdom.splinter.util.addPortMarkers
 import com.glomdom.splinter.util.faceMarker
@@ -15,14 +19,19 @@ import com.glomdom.splinter.util.left
 import com.glomdom.splinter.util.right
 import com.glomdom.splinter.util.placementFacing
 import com.glomdom.splinter.util.tr
+import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
+import io.github.pylonmc.rebar.block.interfaces.LogisticRebarBlock
+import io.github.pylonmc.rebar.logistics.LogisticGroup
+import io.github.pylonmc.rebar.logistics.LogisticGroupType
+import io.github.pylonmc.rebar.logistics.slot.LogisticSlot
 import io.github.pylonmc.rebar.block.context.BlockCreateContext
 import io.github.pylonmc.rebar.block.interfaces.DirectionalRebarBlock
-import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.GuiRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.TickingRebarBlock
 import io.github.pylonmc.rebar.datatypes.RebarSerializers
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.Crafter
@@ -30,16 +39,11 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
 import xyz.xenondevs.invui.gui.Gui
 
-/**
- * Keeps the inventory it faces (currently only crafters) stocked with the filtered item,
- * pulling from the linked receiver's network one item per tick.
- *
- * Ports: back = how many to keep (input), left = 1 when satisfied, right = how many items the network is short.
- */
-class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRebarBlock, TickingRebarBlock,
+class Spiller : RebarBlock, DirectionalRebarBlock, HologramHolder, GuiRebarBlock, TickingRebarBlock,
     ReceiverLinked, DataEndpoint {
 
     override val link = ReceiverLink()
+    override val hologram = Hologram(this, Accent.SPILLER)
 
     override val dataPorts by lazy {
         val back = facing.oppositeFace
@@ -58,10 +62,10 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
     private val shortPort get() = dataPorts.getValue(facing.right())
 
     private val filter = FilterSlot { onFilterChanged() }
-    private val labels = Labels(this)
 
-    /** Crafter slots this spiller is responsible for (slots whose pattern matches the filter). */
+    /** Crafter slots this spiller is responsible for. */
     private var claims = mutableSetOf<Int>()
+    private var mode = Mode.PER_SLOT
     private var status = Status.NO_FILTER
     private var has: Int? = null // null = target has no notion of the input
     private var short = 0
@@ -80,7 +84,7 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
             )
         )
 
-        labels.create("status", "filter", "amounts", "slots")
+        hologram.spawn()
 
         render()
     }
@@ -100,10 +104,15 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
         pdc.set(claimsKey, claimsType, claims)
     }
 
-    override fun postLoad() = render()
+    override fun postLoad() {
+        hologram.restore()
+        render()
+    }
+
     override fun createGui(): Gui = filter.gui()
     override fun onLinkChanged() = tick()
     override fun onInput(port: DataPort) = render()
+    override fun onWiringChanged() = render()
 
     override fun tick() {
         short = 0
@@ -121,16 +130,76 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
 
         val keep = keepPort.value.coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
 
-        return when (val target = block.getRelative(facing).getState(false)) {
-            is Crafter -> {
-                tickCrafter(target, key, keep)
-            }
+        val target = block.getRelative(facing)
+        val crafter = target.getState(false) as? Crafter
 
-            else -> {
-                has = null
-                Status.INVALID_TARGET
-            }
+        if (crafter != null && BlockStorage.get(target) == null) {
+            mode = Mode.PER_SLOT
+            return tickCrafter(crafter, key, keep)
         }
+
+        mode = Mode.TOTAL
+        claims.clear()
+
+        return tickLogistic(target, key, keep)
+    }
+
+    /**
+     * Stocks any machine or container through its input logistic groups,
+     * keeping [keep] of the item in total across those slots.
+     */
+    private fun tickLogistic(target: Block, key: ItemKey, keep: Int): Status {
+        // fixme: allow selection of logistic group to use instead of every input
+
+        val template = key.stack()
+        val slots = inputSlots(target, template)
+
+        if (slots.isEmpty()) {
+            has = null
+
+            return Status.INVALID_TARGET
+        }
+
+        fun matches(slot: LogisticSlot) = slot.getItemStack()?.takeIf { !it.isEmpty }?.let { ItemKey.of(it) == key } == true
+        fun isEmpty(slot: LogisticSlot) = slot.getItemStack()?.isEmpty ?: true
+
+        val current = slots.filter(::matches).sumOf { it.getAmount() }
+        has = current.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+
+        if (keep == 0) return Status.IDLE
+        if (current >= keep) return Status.SATISFIED
+
+        // top up a partial stack first, then start a new one in an empty slot
+        val slot = (slots.filter(::matches) + slots.filter(::isEmpty)).firstOrNull {
+            val next = it.getAmount() + 1
+
+            next <= it.getMaxAmount(template) && it.canSet(template, next)
+        } ?: return Status.TARGET_FULL
+
+        val taken = takeFromNetwork(key, 1)
+        if (taken == null) {
+            short = (keep - current).toInt()
+
+            return Status.NO_STOCK
+        }
+
+        val stack = slot.getItemStack()?.takeIf { !it.isEmpty }?.clone() ?: taken
+        slot.set(stack, slot.getAmount() + 1)
+
+        has = (has ?: 0) + 1
+
+        return Status.SPILLING
+    }
+
+    /** Distinct slots of every input group on [target] that accepts [item]. */
+    private fun inputSlots(target: Block, item: ItemStack): List<LogisticSlot> {
+        val groups = (BlockStorage.get(target) as? LogisticRebarBlock)?.getLogisticGroups()
+            ?: LogisticGroup.getVanillaLogisticSlots(target)
+
+        return groups.values
+            .filter { it.slotType != LogisticGroupType.OUTPUT && it.filter?.invoke(item) != false }
+            .flatMap { it.slots }
+            .distinct()
     }
 
     private fun tickCrafter(crafter: Crafter, key: ItemKey, keep: Int): Status {
@@ -209,31 +278,49 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
         tick()
     }
 
-    private fun render() {
-        val keep = Component.text(keepPort.value)
+    private fun render() = hologram.render {
+        val keep = keepPort.value
 
-        labels["status"] = tr("spiller.status.${status.id}")
-        labels["filter"] = filter.label()
+        status(status.tone, status.id)
 
-        labels["amounts"] = has?.let { tr("spiller.keep_has", "keep" to keep, "has" to Component.text(it)) }
-            ?: tr("spiller.keep", "keep" to keep)
+        row("filter", filter.key?.name?.color(Fmt.NUMBER) ?: Fmt.none())
+        row("keep", if (keepPort.isConnected) tr(mode.keepKey, "count" to Fmt.number(keep)) else tr("hologram.not_wired"))
 
-        labels["slots"] = claims
-            .takeIf { it.isNotEmpty() }
-            ?.sorted()
-            ?.let { tr("spiller.slots", "slots" to Component.text(it.joinToString(" ") { slot -> (slot + 1).toString() })) }
+        if (mode == Mode.PER_SLOT && claims.isNotEmpty()) {
+            row("slots", Component.text(claims.sorted().joinToString(" ") { (it + 1).toString() }, Accent.SPILLER))
+        }
+
+        has?.let { has ->
+            val target = when (mode) {
+                Mode.PER_SLOT -> keep * claims.size
+                Mode.TOTAL -> keep
+            }
+
+            if (target > 0) {
+                row("stocked", Fmt.meter(has.toLong(), target, Accent.SPILLER))
+            } else {
+                row("stocked", Fmt.number(has))
+            }
+        }
+
+        if (short > 0) row("short", Fmt.number(short, NamedTextColor.RED))
     }
 
-    private enum class Status(val id: String) {
-        UNLINKED("unlinked"),
-        NO_FILTER("no_filter"),
-        INVALID_TARGET("invalid_target"),
-        NO_PATTERN("no_pattern"),
-        IDLE("idle"),
-        SATISFIED("satisfied"),
-        SPILLING("spilling"),
-        NO_STOCK("no_stock"),
-        TARGET_FULL("target_full"),
+    private enum class Mode(val keepKey: String) {
+        PER_SLOT("hologram.per_slot"),
+        TOTAL("hologram.total"),
+    }
+
+    private enum class Status(val id: String, val tone: Tone) {
+        UNLINKED("unlinked", Tone.WARN),
+        NO_FILTER("no_filter", Tone.WARN),
+        INVALID_TARGET("invalid_target", Tone.BAD),
+        NO_PATTERN("no_pattern", Tone.WARN),
+        IDLE("idle", Tone.IDLE),
+        SATISFIED("satisfied", Tone.GOOD),
+        SPILLING("spilling", Tone.ACTIVE),
+        NO_STOCK("no_stock", Tone.BAD),
+        TARGET_FULL("target_full", Tone.BAD),
     }
 
     companion object {

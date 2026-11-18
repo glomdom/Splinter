@@ -5,20 +5,17 @@ import io.github.pylonmc.rebar.util.IMMEDIATE_FACES
 import org.bukkit.block.BlockFace
 import org.joml.Vector3d
 
-/**
- * A block with [DataPort]s, one per face. Ports are paired with a port of the opposite kind either
- * through a line of [DataWire]s or by placing two endpoints directly against each other
- * (see [DataGraphListener.relink]).
- */
 interface DataEndpoint : DataNode {
     val dataPorts: Map<BlockFace, DataPort>
 
     override fun canConnect(face: BlockFace) = face in dataPorts
 
-    /** Called when an input port receives a new value. */
     fun onInput(port: DataPort) {}
+    fun onWiringChanged() {}
 
-    /** Draws a short line to each adjacent endpoint whose input faces one of our outputs. */
+    val connectedPorts: Int
+        get() = dataPorts.values.count { it.isConnected }
+
     fun updateDirectlyConnectedFaces() {
         for (face in IMMEDIATE_FACES) {
             val myPort = dataPorts[face] ?: continue

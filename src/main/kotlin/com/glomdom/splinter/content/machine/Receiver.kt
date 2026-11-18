@@ -1,21 +1,21 @@
 package com.glomdom.splinter.content.machine
 
-import com.glomdom.splinter.item.ItemKeyType
-import com.glomdom.splinter.util.READER
+import com.glomdom.splinter.hologram.Accent
+import com.glomdom.splinter.hologram.Fmt
+import com.glomdom.splinter.hologram.Hologram
+import com.glomdom.splinter.hologram.HologramHolder
+import com.glomdom.splinter.hologram.Tone
 import com.glomdom.splinter.item.ItemKey
+import com.glomdom.splinter.item.ItemKeyType
 import com.glomdom.splinter.link.LinkSource
 import com.glomdom.splinter.link.LinkTarget
 import com.glomdom.splinter.splinterKey
-import com.glomdom.splinter.util.Labels
-import com.glomdom.splinter.util.tr
 import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
 import io.github.pylonmc.rebar.block.context.BlockCreateContext
-import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.datatypes.RebarSerializers
 import io.github.pylonmc.rebar.event.RebarBlockBreakEvent
 import io.github.pylonmc.rebar.event.RebarBlockLoadEvent
-import io.github.pylonmc.rebar.util.gui.unit.UnitFormat
 import io.github.pylonmc.rebar.util.position.BlockPosition
 import io.github.pylonmc.rebar.util.position.position
 import it.unimi.dsi.fastutil.objects.Object2LongMaps
@@ -27,22 +27,13 @@ import org.bukkit.event.Listener
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
 
-/**
- * Hub of a logistics network. Aggregates the item counts reported by linked [Reader]s, answers
- * [Probe] queries and serves extraction requests from [Spiller]s.
- *
- * Only readers count towards [linkCapacity]; probes and spillers are unlimited by design.
- */
-class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
-    /** Linked readers and the counts each last reported. */
+class Receiver : RebarBlock, HologramHolder, LinkTarget {
     private val contributions = HashMap<BlockPosition, Object2LongOpenHashMap<ItemKey>>()
-
-    /** Every other linked source (probes, spillers): they use the network but don't add to it. */
     private val consumers = mutableSetOf<BlockPosition>()
 
     private val aggregate = Object2LongOpenHashMap<ItemKey>()
 
-    private val labels = Labels(this)
+    override val hologram = Hologram(this, Accent.RECEIVER)
 
     var total = 0L
         private set
@@ -53,7 +44,7 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
 
     @Suppress("unused")
     constructor(block: Block, ctx: BlockCreateContext) : super(block, ctx) {
-        labels.create("status", "readers", "value")
+        hologram.spawn()
 
         refresh()
     }
@@ -68,18 +59,11 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
         }
 
         pdc.get(consumersKey, positionsType)?.let { consumers += it }
-
-        // receivers saved before probes and spillers were merged into `consumers`
-        for (key in legacyConsumerKeys) {
-            pdc.get(key, positionsType)?.let { consumers += it }
-        }
     }
 
     override fun write(pdc: PersistentDataContainer) {
         pdc.set(contributionsKey, contributionsType, contributions)
         pdc.set(consumersKey, positionsType, consumers)
-
-        legacyConsumerKeys.forEach(pdc::remove)
     }
 
     override fun hasSource(source: LinkSource) =
@@ -137,10 +121,23 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
         return null
     }
 
-    fun refresh() {
-        labels["status"] = if (contributions.isEmpty()) tr("receiver.status.unlinked") else tr("receiver.status.receiving")
-        labels["readers"] = UnitFormat.READER.format(sourceCount).asComponent()
-        labels["value"] = UnitFormat.ITEMS.format(total).asComponent()
+    override fun postLoad() = hologram.restore()
+
+    fun refresh() = hologram.render {
+        if (contributions.isEmpty()) status(Tone.WARN, "no_readers") else status(Tone.GOOD, "receiving")
+
+        row("readers", Fmt.meter(sourceCount.toLong(), linkCapacity.toLong(), Accent.RECEIVER))
+        row("consumers", consumers.size.takeIf { it > 0 }?.let { Fmt.number(it) })
+        row("stored", Fmt.items(total, aggregate.size))
+
+        val top = aggregate.object2LongEntrySet()
+            .sortedByDescending { it.longValue }
+            .take(TOP_ITEMS)
+
+        if (top.isNotEmpty()) {
+            separator()
+            top.forEach { line(Fmt.stack(it.longValue, it.key)) }
+        }
     }
 
     private fun addAll(counts: Object2LongOpenHashMap<ItemKey>, sign: Long) {
@@ -166,6 +163,8 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
     }
 
     companion object : Listener {
+        private const val TOP_ITEMS = 5 // todo: maybe make this configurable
+
         private val contributionsKey = splinterKey("reader_contributions")
         private val contributionsType = RebarSerializers.MAP.mapTypeFrom(
             RebarSerializers.BLOCK_POSITION,
@@ -174,8 +173,6 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
 
         private val consumersKey = splinterKey("receiver_consumers")
         private val positionsType = RebarSerializers.SET.setTypeFrom(RebarSerializers.BLOCK_POSITION)
-
-        private val legacyConsumerKeys = listOf(splinterKey("receiver_probes"), splinterKey("receiver_spillers"))
 
         @Suppress("unused")
         @EventHandler(priority = EventPriority.MONITOR)

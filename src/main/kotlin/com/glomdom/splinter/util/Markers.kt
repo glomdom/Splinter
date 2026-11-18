@@ -8,7 +8,7 @@ import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import org.bukkit.Material
 import org.bukkit.block.BlockFace
 
-/** Small coloured squares drawn on block faces to show what each side does. */
+/** Small colored squares drawn on block faces to show what each side does. */
 object Markers {
     val INPUT: ItemStackBuilder = marker(Material.LIGHT_BLUE_CONCRETE, "port_input")
     val OUTPUT: ItemStackBuilder = marker(Material.ORANGE_CONCRETE, "port_output")
