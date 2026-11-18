@@ -1,13 +1,13 @@
 package com.glomdom.splinter.content.machine
 
-import com.glomdom.splinter.datatypes.ItemKeyType
-import com.glomdom.splinter.extensions.READER
-import com.glomdom.splinter.interfaces.ItemKey
-import com.glomdom.splinter.interfaces.LinkSource
-import com.glomdom.splinter.interfaces.LinkTarget
+import com.glomdom.splinter.item.ItemKeyType
+import com.glomdom.splinter.util.READER
+import com.glomdom.splinter.item.ItemKey
+import com.glomdom.splinter.link.LinkSource
+import com.glomdom.splinter.link.LinkTarget
 import com.glomdom.splinter.splinterKey
-import com.glomdom.splinter.utilities.Labels
-import com.glomdom.splinter.utilities.tr
+import com.glomdom.splinter.util.Labels
+import com.glomdom.splinter.util.tr
 import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
 import io.github.pylonmc.rebar.block.context.BlockCreateContext
@@ -27,10 +27,19 @@ import org.bukkit.event.Listener
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
 
+/**
+ * Hub of a logistics network. Aggregates the item counts reported by linked [Reader]s, answers
+ * [Probe] queries and serves extraction requests from [Spiller]s.
+ *
+ * Only readers count towards [linkCapacity]; probes and spillers are unlimited by design.
+ */
 class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
+    /** Linked readers and the counts each last reported. */
     private val contributions = HashMap<BlockPosition, Object2LongOpenHashMap<ItemKey>>()
-    private var probes = mutableSetOf<BlockPosition>()
-    private var spillers = mutableSetOf<BlockPosition>()
+
+    /** Every other linked source (probes, spillers): they use the network but don't add to it. */
+    private val consumers = mutableSetOf<BlockPosition>()
+
     private val aggregate = Object2LongOpenHashMap<ItemKey>()
 
     private val labels = Labels(this)
@@ -58,54 +67,43 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
             addAll(map, 1)
         }
 
-        pdc.get(probesKey, probesType)?.let { probes = it.toMutableSet() }
-        pdc.get(spillersKey, spillersType)?.let { spillers = it.toMutableSet() }
+        pdc.get(consumersKey, positionsType)?.let { consumers += it }
+
+        // receivers saved before probes and spillers were merged into `consumers`
+        for (key in legacyConsumerKeys) {
+            pdc.get(key, positionsType)?.let { consumers += it }
+        }
     }
 
     override fun write(pdc: PersistentDataContainer) {
         pdc.set(contributionsKey, contributionsType, contributions)
-        pdc.set(probesKey, probesType, probes)
-        pdc.set(spillersKey, spillersType, spillers)
+        pdc.set(consumersKey, positionsType, consumers)
+
+        legacyConsumerKeys.forEach(pdc::remove)
     }
 
     override fun hasSource(source: LinkSource) =
-        source.block.position.let { it in contributions || it in probes || it in spillers }
+        source.block.position.let { it in contributions || it in consumers }
 
     override fun addSource(source: LinkSource) {
-        when (source) {
-            is Reader -> {
-                contributions.putIfAbsent(source.block.position, Object2LongOpenHashMap())
-                source.sync()
-            }
-
-            is Probe -> {
-                probes += source.block.position
-            }
-
-            is Spiller -> {
-                spillers += source.block.position
-            }
+        if (source is Reader) {
+            contributions.putIfAbsent(source.block.position, Object2LongOpenHashMap())
+            source.sync()
+        } else {
+            consumers += source.block.position
         }
 
         refresh()
     }
 
     override fun removeSource(source: LinkSource) {
-        when (source) {
-            is Reader -> {
-                contributions.remove(source.block.position)?.let {
-                    addAll(it, -1)
-                    notifyProbes()
-                }
+        if (source is Reader) {
+            contributions.remove(source.block.position)?.let {
+                addAll(it, -1)
+                notifyProbes()
             }
-
-            is Probe -> {
-                probes -= source.block.position
-            }
-
-            is Spiller -> {
-                spillers -= source.block.position
-            }
+        } else {
+            consumers -= source.block.position
         }
 
         refresh()
@@ -160,7 +158,7 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
     }
 
     private fun notifyProbes() {
-        for (pos in probes) {
+        for (pos in consumers) {
             if (!pos.isChunkLoaded) continue
 
             BlockStorage.getAs<Probe>(pos)?.refreshValue()
@@ -174,11 +172,10 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
             RebarSerializers.MAP.mapTypeFrom(ItemKeyType, RebarSerializers.LONG),
         )
 
-        private val probesKey = splinterKey("receiver_probes")
-        private val probesType = RebarSerializers.SET.setTypeFrom(RebarSerializers.BLOCK_POSITION)
+        private val consumersKey = splinterKey("receiver_consumers")
+        private val positionsType = RebarSerializers.SET.setTypeFrom(RebarSerializers.BLOCK_POSITION)
 
-        private val spillersKey = splinterKey("receiver_spillers")
-        private val spillersType = RebarSerializers.SET.setTypeFrom(RebarSerializers.BLOCK_POSITION)
+        private val legacyConsumerKeys = listOf(splinterKey("receiver_probes"), splinterKey("receiver_spillers"))
 
         @Suppress("unused")
         @EventHandler(priority = EventPriority.MONITOR)
@@ -200,8 +197,7 @@ class Receiver : RebarBlock, EntityHolderRebarBlock, LinkTarget {
             val receiver = e.rebarBlock as? Receiver ?: return
             val sources = buildSet {
                 addAll(receiver.contributions.keys)
-                addAll(receiver.probes)
-                addAll(receiver.spillers)
+                addAll(receiver.consumers)
             }
 
             for (pos in sources) {

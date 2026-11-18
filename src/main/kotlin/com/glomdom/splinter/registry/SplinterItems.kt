@@ -14,7 +14,7 @@ object SplinterItems : SplinterRegistry() {
     val SPILLER by blockItem(Material.YELLOW_STAINED_GLASS, SplinterPages.SPLINTER)
     val ARITHMETIC by blockItem(Material.MAGENTA_STAINED_GLASS, SplinterPages.SPLINTER)
 
-    val DATA_WIRE by blockItem(Material.STRUCTURE_VOID, Material.RED_CONCRETE, SplinterPages.SPLINTER)
+    val DATA_WIRE by blockItem(Material.STRUCTURE_VOID, SplinterPages.SPLINTER, look = Material.RED_CONCRETE)
 
     val LINKER_TOOL by item<LinkerTool>(Material.BRUSH, SplinterPages.SPLINTER)
 }

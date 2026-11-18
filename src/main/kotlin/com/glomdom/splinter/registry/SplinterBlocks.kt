@@ -8,7 +8,7 @@ import com.glomdom.splinter.content.machine.Reader
 import com.glomdom.splinter.content.machine.Receiver
 import com.glomdom.splinter.content.machine.RedstoneOut
 import com.glomdom.splinter.content.machine.Spiller
-import com.glomdom.splinter.content.machine.data.DataWire
+import com.glomdom.splinter.data.DataWire
 import org.bukkit.Material
 
 object SplinterBlocks : SplinterRegistry() {

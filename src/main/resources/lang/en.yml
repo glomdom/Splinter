@@ -139,7 +139,6 @@ messages:
   linker:
     started_linking: "Linking <green>%what%</green> at <aqua>%x%, %y%, %z%</aqua>"
     stopped_linking: "<gray>Stopped linking</gray>"
-    already_linking: "Already linking <green>%what%</green> at <aqua>%x%, %y%, %z%</aqua> <dark_gray>-</dark_gray> <insn>Shift right click</insn> in the air to stop"
 
     linked: "Linked <green>%source%</green> to <green>%target%</green> at <aqua>%x%, %y%, %z%</aqua>"
     unlinked: "Unlinked <green>%source%</green> from <green>%target%</green>"

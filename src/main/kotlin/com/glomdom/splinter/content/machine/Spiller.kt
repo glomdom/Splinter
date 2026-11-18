@@ -1,20 +1,20 @@
 package com.glomdom.splinter.content.machine
 
-import com.glomdom.splinter.content.machine.data.DataEndpoint
-import com.glomdom.splinter.content.machine.data.DataPort
-import com.glomdom.splinter.content.machine.data.FilterSlot
-import com.glomdom.splinter.content.machine.data.ReceiverLink
-import com.glomdom.splinter.content.machine.data.ReceiverLinked
-import com.glomdom.splinter.extensions.addPortMarkers
-import com.glomdom.splinter.extensions.faceMarker
-import com.glomdom.splinter.extensions.left
-import com.glomdom.splinter.extensions.right
-import com.glomdom.splinter.interfaces.ItemKey
-import com.glomdom.splinter.interfaces.LinkTarget
+import com.glomdom.splinter.data.DataEndpoint
+import com.glomdom.splinter.data.DataPort
+import com.glomdom.splinter.item.FilterSlot
+import com.glomdom.splinter.link.ReceiverLink
+import com.glomdom.splinter.link.ReceiverLinked
+import com.glomdom.splinter.item.ItemKey
 import com.glomdom.splinter.splinterKey
-import com.glomdom.splinter.utilities.Labels
-import com.glomdom.splinter.utilities.placementFacing
-import com.glomdom.splinter.utilities.tr
+import com.glomdom.splinter.util.Labels
+import com.glomdom.splinter.util.Markers
+import com.glomdom.splinter.util.addPortMarkers
+import com.glomdom.splinter.util.faceMarker
+import com.glomdom.splinter.util.left
+import com.glomdom.splinter.util.right
+import com.glomdom.splinter.util.placementFacing
+import com.glomdom.splinter.util.tr
 import io.github.pylonmc.rebar.block.RebarBlock
 import io.github.pylonmc.rebar.block.context.BlockCreateContext
 import io.github.pylonmc.rebar.block.interfaces.DirectionalRebarBlock
@@ -22,21 +22,24 @@ import io.github.pylonmc.rebar.block.interfaces.EntityHolderRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.GuiRebarBlock
 import io.github.pylonmc.rebar.block.interfaces.TickingRebarBlock
 import io.github.pylonmc.rebar.datatypes.RebarSerializers
-import io.github.pylonmc.rebar.item.builder.ItemStackBuilder
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.Crafter
-import org.bukkit.event.Listener
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
 import xyz.xenondevs.invui.gui.Gui
 
+/**
+ * Keeps the inventory it faces (currently only crafters) stocked with the filtered item,
+ * pulling from the linked receiver's network one item per tick.
+ *
+ * Ports: back = how many to keep (input), left = 1 when satisfied, right = how many items the network is short.
+ */
 class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRebarBlock, TickingRebarBlock,
     ReceiverLinked, DataEndpoint {
 
     override val link = ReceiverLink()
-    override val linkRange = 64
 
     override val dataPorts by lazy {
         val back = facing.oppositeFace
@@ -50,18 +53,14 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
         )
     }
 
-    private val input
-        get() = dataPorts.getValue(facing.oppositeFace)
-
-    private val ready
-        get() = dataPorts.getValue(facing.left())
-
-    private val shortPort
-        get() = dataPorts.getValue(facing.right())
+    private val keepPort get() = dataPorts.getValue(facing.oppositeFace)
+    private val readyPort get() = dataPorts.getValue(facing.left())
+    private val shortPort get() = dataPorts.getValue(facing.right())
 
     private val filter = FilterSlot { onFilterChanged() }
     private val labels = Labels(this)
 
+    /** Crafter slots this spiller is responsible for (slots whose pattern matches the filter). */
     private var claims = mutableSetOf<Int>()
     private var status = Status.NO_FILTER
     private var has: Int? = null // null = target has no notion of the input
@@ -73,11 +72,11 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
 
         setTickInterval(10) // todo: make this tiered/configurable
 
-        addEntity("targetFace", faceMarker(targetMarker, facing))
+        addEntity("targetFace", faceMarker(TARGET_MARKER, facing))
         addPortMarkers(
             mapOf(
-                facing.oppositeFace to keepMarker,
-                facing.right() to shortMarker,
+                facing.oppositeFace to KEEP_MARKER,
+                facing.right() to SHORT_MARKER,
             )
         )
 
@@ -103,24 +102,14 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
 
     override fun postLoad() = render()
     override fun createGui(): Gui = filter.gui()
-    override fun onLinked(target: LinkTarget) {
-        link.attach(target)
-
-        tick()
-    }
-
-    override fun onUnlinked(target: LinkTarget) {
-        link.detach()
-
-        tick()
-    }
-
+    override fun onLinkChanged() = tick()
     override fun onInput(port: DataPort) = render()
+
     override fun tick() {
         short = 0
         status = work()
 
-        ready.emit(if (status == Status.SATISFIED) 1 else 0)
+        readyPort.emit(if (status == Status.SATISFIED) 1 else 0)
         shortPort.emit(short.toLong())
 
         render()
@@ -130,7 +119,7 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
         val key = filter.key ?: return Status.NO_FILTER
         if (!isLinked) return Status.UNLINKED
 
-        val keep = input.value.coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+        val keep = keepPort.value.coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
 
         return when (val target = block.getRelative(facing).getState(false)) {
             is Crafter -> {
@@ -221,7 +210,7 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
     }
 
     private fun render() {
-        val keep = Component.text(input.value)
+        val keep = Component.text(keepPort.value)
 
         labels["status"] = tr("spiller.status.${status.id}")
         labels["filter"] = filter.label()
@@ -247,17 +236,12 @@ class Spiller : RebarBlock, DirectionalRebarBlock, EntityHolderRebarBlock, GuiRe
         TARGET_FULL("target_full"),
     }
 
-    companion object : Listener {
+    companion object {
         private val claimsKey = splinterKey("spiller_claims")
         private val claimsType = RebarSerializers.SET.setTypeFrom(RebarSerializers.INTEGER)
 
-        private val targetMarker = ItemStackBuilder.of(Material.BLUE_CONCRETE)
-            .addCustomModelDataString("splinter:spiller_target")
-
-        private val keepMarker = ItemStackBuilder.of(Material.LIME_CONCRETE)
-            .addCustomModelDataString("splinter:spiller_keep")
-
-        private val shortMarker = ItemStackBuilder.of(Material.RED_CONCRETE)
-            .addCustomModelDataString("splinter:spiller_short")
+        private val TARGET_MARKER = Markers.marker(Material.BLUE_CONCRETE, "spiller_target")
+        private val KEEP_MARKER = Markers.marker(Material.LIME_CONCRETE, "spiller_keep")
+        private val SHORT_MARKER = Markers.marker(Material.RED_CONCRETE, "spiller_short")
     }
 }

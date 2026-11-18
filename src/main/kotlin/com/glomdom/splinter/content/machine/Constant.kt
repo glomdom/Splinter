@@ -1,11 +1,11 @@
 package com.glomdom.splinter.content.machine
 
-import com.glomdom.splinter.content.machine.data.DataEndpoint
-import com.glomdom.splinter.content.machine.data.DataPort
-import com.glomdom.splinter.extensions.addPortMarkers
+import com.glomdom.splinter.data.DataEndpoint
+import com.glomdom.splinter.data.DataPort
 import com.glomdom.splinter.splinterKey
-import com.glomdom.splinter.utilities.Labels
-import com.glomdom.splinter.utilities.tr
+import com.glomdom.splinter.util.Labels
+import com.glomdom.splinter.util.addPortMarkers
+import com.glomdom.splinter.util.tr
 import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
 import io.github.pylonmc.rebar.block.context.BlockCreateContext
@@ -23,13 +23,14 @@ import net.kyori.adventure.text.event.ClickCallback
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
+import org.bukkit.entity.Player
 import org.bukkit.event.EventPriority
-import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.persistence.PersistentDataContainer
 
+/** Outputs a fixed number on every side. Shift + right-click opens a dialog to change it. */
 class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, DataEndpoint {
     private var constant = 0L
 
@@ -58,53 +59,51 @@ class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, 
     }
 
     override fun postLoad() = refreshConstant()
+
     override fun onInteractedWith(event: PlayerInteractEvent, priority: EventPriority) {
         if (event.hand != EquipmentSlot.HAND) return
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
         if (!event.player.isSneaking) return
 
-        val locale = event.player.locale()
+        event.player.showDialog(editDialog(event.player))
+    }
 
-        val dialog = Dialog.create { builder ->
+    private fun editDialog(player: Player): Dialog {
+        val locale = player.locale()
+        fun render(key: String) = GlobalTranslator.render(tr(key), locale)
+
+        val input = DialogInput.text("value", render("dialog.constant.label"))
+            .initial(constant.toString())
+            .maxLength(20)
+            .build()
+
+        val confirm = ActionButton.builder(render("dialog.confirm"))
+            .action(
+                DialogAction.customClick(
+                    { response, _ ->
+                        // the block may have been broken while the dialog was open
+                        if (BlockStorage.get(block) !== this) return@customClick
+
+                        val parsed = response.getText("value")?.trim()?.toLongOrNull()
+                        if (parsed == null) {
+                            player.sendMessage(tr("messages.constant.invalid"))
+                        } else {
+                            setConstant(parsed)
+                            player.sendMessage(tr("messages.constant.ok"))
+                        }
+                    },
+                    ClickCallback.Options.builder().uses(1).build()
+                )
+            )
+            .build()
+
+        val cancel = ActionButton.builder(render("dialog.cancel")).build()
+
+        return Dialog.create { builder ->
             builder.empty()
-                .base(
-                    DialogBase.builder(GlobalTranslator.render(tr("dialog.constant.title"), locale))
-                        .inputs(
-                            listOf(
-                                DialogInput.text("value", GlobalTranslator.render(tr("dialog.constant.label"), locale))
-                                    .initial(constant.toString())
-                                    .maxLength(20)
-                                    .build()
-                            )
-                        )
-                        .build()
-                )
-                .type(
-                    DialogType.confirmation(
-                        ActionButton.builder(GlobalTranslator.render(tr("dialog.confirm"), locale))
-                            .action(
-                                DialogAction.customClick(
-                                    { response, _ ->
-                                        if (BlockStorage.get(block) !== this) return@customClick
-
-                                        val parsed = response.getText("value")?.trim()?.toLongOrNull()
-                                        if (parsed == null) {
-                                            event.player.sendMessage(tr("messages.constant.invalid"))
-                                        } else {
-                                            setConstant(parsed)
-                                            event.player.sendMessage(tr("messages.constant.ok"))
-                                        }
-                                    },
-                                    ClickCallback.Options.builder().uses(1).build()
-                                )
-                            )
-                            .build(),
-                        ActionButton.builder(GlobalTranslator.render(tr("dialog.cancel"), locale)).build()
-                    )
-                )
+                .base(DialogBase.builder(render("dialog.constant.title")).inputs(listOf(input)).build())
+                .type(DialogType.confirmation(confirm, cancel))
         }
-
-        event.player.showDialog(dialog)
     }
 
     private fun setConstant(new: Long) {
@@ -121,7 +120,7 @@ class Constant : RebarBlock, EntityHolderRebarBlock, InteractRebarBlockHandler, 
         labels["constant"] = tr("constant.value", "value" to Component.text(constant))
     }
 
-    companion object : Listener {
+    companion object {
         private val constantKey = splinterKey("constant")
     }
 }

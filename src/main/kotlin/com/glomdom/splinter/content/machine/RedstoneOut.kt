@@ -1,11 +1,11 @@
 package com.glomdom.splinter.content.machine
 
-import com.glomdom.splinter.content.machine.data.DataEndpoint
-import com.glomdom.splinter.content.machine.data.DataPort
-import com.glomdom.splinter.extensions.REDSTONE_STRENGTH
-import com.glomdom.splinter.extensions.addPortMarkers
-import com.glomdom.splinter.utilities.Labels
-import com.glomdom.splinter.utilities.placementFacing
+import com.glomdom.splinter.data.DataEndpoint
+import com.glomdom.splinter.data.DataPort
+import com.glomdom.splinter.util.REDSTONE_STRENGTH
+import com.glomdom.splinter.util.addPortMarkers
+import com.glomdom.splinter.util.Labels
+import com.glomdom.splinter.util.placementFacing
 import io.github.pylonmc.rebar.block.BlockStorage
 import io.github.pylonmc.rebar.block.RebarBlock
 import io.github.pylonmc.rebar.block.context.BlockCreateContext

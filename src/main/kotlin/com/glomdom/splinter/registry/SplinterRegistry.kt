@@ -14,27 +14,70 @@ import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
-import kotlin.reflect.KProperty
 
+/**
+ * Declarative registry. Each `val FOO by item(...)` / `block(...)` / ... derives the key `splinter:foo`
+ * from the property name and queues registration until [registerAll] is called.
+ *
+ * A block and its item share a key, so `SplinterBlocks.READER` and `SplinterItems.READER` must have the
+ * same name; [validateClaims] fails startup if a block item has no matching block.
+ */
 abstract class SplinterRegistry {
     enum class Kind { ITEM, BLOCK_ITEM, BLOCK, FLUID }
 
-    val keys: Map<String, NamespacedKey> get() = keysByProperty
-
     private val pending = mutableListOf<() -> Unit>()
-    private val keysByProperty = LinkedHashMap<String, NamespacedKey>()
-
-    fun keyOf(property: KProperty<*>): NamespacedKey =
-        keysByProperty[property.name] ?: error("${property.name} is not an entry of ${this::class.simpleName}")
 
     fun registerAll() {
-        pending.forEach { it.invoke() }
+        pending.forEach { it() }
         pending.clear()
     }
 
-    protected fun <T : Any> entry(
+    /** A standalone item backed by the [RebarItem] subclass [T]. [look] overrides the item model. */
+    protected inline fun <reified T : RebarItem> item(material: Material, page: SimpleStaticGuidePage, look: Material? = null) =
+        itemEntry(T::class.java, Kind.ITEM, material, page, look)
+
+    /** The item form of a block declared in [SplinterBlocks] under the same name. */
+    protected fun blockItem(material: Material, page: SimpleStaticGuidePage, look: Material? = null) =
+        itemEntry(RebarItem::class.java, Kind.BLOCK_ITEM, material, page, look)
+
+    protected inline fun <reified T : RebarBlock> block(material: Material) =
+        entry(Kind.BLOCK, register = { key, _ -> RebarBlock.register(key, material, T::class.java) }) { it }
+
+    protected fun fluid(
+        color: TextColor,
+        material: Material,
+        temperature: FluidTemperature = FluidTemperature.NORMAL,
+    ) = entry(
+        Kind.FLUID,
+        register = { _, fluid -> fluid.addTag(temperature); fluid.register() }
+    ) { key ->
+        RebarFluid(key, color, material)
+    }
+
+    @PublishedApi
+    internal fun <T : RebarItem> itemEntry(
+        type: Class<T>,
         kind: Kind,
-        register: (NamespacedKey, T) -> Unit = { _, _ -> },
+        material: Material,
+        page: SimpleStaticGuidePage,
+        look: Material?,
+    ) = entry(
+        kind,
+        register = { key, stack ->
+            if (kind == Kind.BLOCK_ITEM) RebarItem.register(type, stack, key) else RebarItem.register(type, stack)
+            page.addItem(stack)
+        }
+    ) { key ->
+        ItemStackBuilder.rebar(material, key)
+            .apply { if (look != null) set(DataComponentTypes.ITEM_MODEL, look.key) }
+            .build()
+    }
+
+    /** Claims a key from the property name, builds the value now and defers [register] to [registerAll]. */
+    @PublishedApi
+    internal fun <T : Any> entry(
+        kind: Kind,
+        register: (NamespacedKey, T) -> Unit,
         build: (NamespacedKey) -> T,
     ) = PropertyDelegateProvider<Any?, ReadOnlyProperty<Any, T>> { _, property ->
         val key = claim(property.name, kind)
@@ -44,66 +87,6 @@ abstract class SplinterRegistry {
         ReadOnlyProperty { _, _ -> value }
     }
 
-    protected fun fluid(
-        color: TextColor,
-        material: Material,
-        temperature: FluidTemperature = FluidTemperature.NORMAL,
-    ) = entry(
-        kind = Kind.FLUID,
-        register = { _, fluid -> fluid.addTag(temperature); fluid.register() }
-    ) { key ->
-        RebarFluid(key, color, material)
-    }
-
-    protected inline fun <reified T : RebarItem> item(material: Material, page: SimpleStaticGuidePage) =
-        item<T>(material, page, kind = Kind.ITEM)
-
-    protected fun <T: RebarItem> item(material: Material, page: SimpleStaticGuidePage, look: Material) =
-        entry(
-            kind = Kind.ITEM,
-            register = { key, stack ->
-                RebarItem.register(RebarItem::class.java, stack, key)
-
-                page.addItem(stack)
-            }
-        ) { key ->
-            ItemStackBuilder.rebar(material, key).set(DataComponentTypes.ITEM_MODEL, look.key).build()
-        }
-
-    protected fun blockItem(material: Material, page: SimpleStaticGuidePage) =
-        item<RebarItem>(material, page, kind = Kind.BLOCK_ITEM)
-
-    protected fun blockItem(material: Material, look: Material, page: SimpleStaticGuidePage) =
-        item<RebarItem>(material, page, kind = Kind.BLOCK_ITEM, look)
-
-    protected fun <T : RebarBlock> block(material: Material, type: Class<T>) =
-        entry(
-            kind = Kind.BLOCK,
-            register = { key, _ ->
-                RebarBlock.register(key, material, type)
-            }
-        ) { key -> key }
-
-    protected inline fun <reified T : RebarBlock> block(material: Material) =
-        block(material, T::class.java)
-
-    protected inline fun <reified T : RebarItem> item(material: Material, page: SimpleStaticGuidePage, kind: Kind, look: Material? = null) =
-        entry(
-            kind,
-            register = { key, stack ->
-                if (kind == Kind.BLOCK_ITEM) RebarItem.register(T::class.java, stack, key)
-                else RebarItem.register(T::class.java, stack)
-
-                page.addItem(stack)
-            }
-        ) { key ->
-            if (look != null) {
-                ItemStackBuilder.rebar(material, key).set(DataComponentTypes.ITEM_MODEL, look.key).build()
-            } else {
-                ItemStackBuilder.rebar(material, key).build()
-            }
-        }
-
     private fun claim(propertyName: String, kind: Kind): NamespacedKey {
         require(propertyName.all { it.isUpperCase() || it.isDigit() || it == '_' }) {
             "$propertyName must be SCREAMING_SNAKE_CASE to derive a key"
@@ -111,8 +94,6 @@ abstract class SplinterRegistry {
 
         val key = splinterKey(propertyName.lowercase())
         require(claims.getOrPut(key) { mutableSetOf() }.add(kind)) { "$key is declared more than once" }
-
-        keysByProperty[propertyName] = key
 
         return key
     }

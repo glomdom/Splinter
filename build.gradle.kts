@@ -54,7 +54,7 @@ tasks.shadowJar {
 }
 
 tasks.runServer {
-    minecraftVersion("26.2")
+    minecraftVersion(minecraftVersion)
 
     doFirst {
         project.projectDir.resolve("run/plugins").deleteRecursively()
@@ -96,7 +96,7 @@ paper {
     main = "com.glomdom.splinter.Splinter"
     bootstrapper = "com.glomdom.splinter.Bootstrapper"
     loader = "com.glomdom.splinter.Loader"
-    apiVersion = "26.2"
+    apiVersion = minecraftVersion
     authors = listOf("glomdom")
     description = "Logistics for your factory"
     generateLibrariesJson = true
